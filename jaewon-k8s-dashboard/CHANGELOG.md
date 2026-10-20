@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.4
+
+- Fix broken Marketplace and VS Code details images caused by anonymous requests to a private GitHub repository.
+- Bundle three user-provided live dashboard screenshots and serve details images from Marketplace assets.
+- Document Pod status, Deployment actions, Helm release management, filters, and connection recovery alongside the screenshots.
+
 ## 0.2.3
 
 - Publish the final blue cluster icons across the extension listing, dashboard, editor tabs, and activity bar.

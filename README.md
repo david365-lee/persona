@@ -12,6 +12,14 @@ VS Code 안에서 Kubernetes 클러스터를 탐색하고 로그, Helm 릴리스
 
 ## 주요 기능
 
+### 0.2.4 업데이트
+
+- Marketplace와 VS Code 세부정보에서 비공개 GitHub 이미지 주소 때문에 발생하던 이미지 깨짐을 수정했습니다.
+- 실제 Pod 목록, Deployment 상세, Helm 관리 화면 3장과 화면별 사용 안내를 추가했습니다.
+- 배포 패키지에 이미지를 포함하고 Marketplace에서 직접 제공해 GitHub 로그인 없이 표시합니다.
+
+[실제 화면과 사용 안내](jaewon-k8s-dashboard/README.md#화면-안내)
+
 ### 0.2.2 업데이트
 
 - 첫 연결 실패 후 새로고침·자동 갱신으로 연결 설정과 네임스페이스 조회를 다시 시도합니다.

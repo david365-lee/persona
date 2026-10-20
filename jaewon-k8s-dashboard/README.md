@@ -2,8 +2,6 @@
 
 [한국어](https://github.com/david365-lee/persona/blob/main/README.md) · [English](https://github.com/david365-lee/persona/blob/main/README.en.md) · [日本語](https://github.com/david365-lee/persona/blob/main/README.ja.md) · [简体中文](https://github.com/david365-lee/persona/blob/main/README.zh-CN.md)
 
-<img src="https://raw.githubusercontent.com/david365-lee/persona/main/jaewon-k8s-dashboard/media/jaewon-icon-128.png" width="128" height="128" alt="Jaewon K8s Dashboard 아이콘">
-
 VS Code에서 실행하는 독립 Kubernetes 대시보드입니다.
 
 한국인 개발자 **jaewon**이 만들어 무료로 배포하는 확장 프로그램입니다. MIT 라이선스로 제공합니다.
@@ -24,9 +22,9 @@ macOS 단축키는 **Cmd+Alt+J**입니다. 활동 표시줄이 보이지 않으�
 
 ## 기능
 
-### 0.2.3 최종 배포판
+### 0.2.4 업데이트
 
-새 파란 클러스터 아이콘, 연결 실패 후 재시도, 네임스페이스 복구 및 컨테이너 상태 개선을 포함합니다. Marketplace의 상세 설명과 변경 이력에서도 이번 업데이트 내용을 확인할 수 있습니다.
+세부정보에서 깨지던 이미지를 제거하고 실제 사용 화면 3장과 기능별 안내를 추가했습니다. 배포판의 이미지는 Marketplace에서 직접 제공하므로 GitHub 로그인 없이 볼 수 있습니다. 기존 연결 복구, 네임스페이스 복원 및 컨테이너 상태 개선도 포함합니다.
 
 ### 0.2.2 업데이트
 
@@ -51,33 +49,50 @@ Pod의 현재 장애와 과거 재시작 이력을 구분하고, init·사이드
 
 ## 화면 안내
 
-아래 화면은 실제 대시보드 UI에 예제 데이터를 넣어 촬영했습니다. 실제 클러스터의 리소스 수와 상태는 연결 환경에 따라 달라집니다.
+아래 이미지는 2026년 10월 21일 사용자가 제공한 실제 `local-rke2` 클러스터 화면입니다. 촬영 당시의 상태이며, 현재 클러스터의 정상 여부를 나타내지는 않습니다. 리소스 이름·수·상태는 연결 환경에 따라 달라집니다.
 
 ### 리소스 탐색과 상태 확인
 
 컨텍스트와 네임스페이스를 고르고 리소스를 검색·정렬합니다. Pod의 현재 장애와 과거 종료 이력을 구분하고, 컨테이너 준비 상태·재시작 수·노드·IP를 확인합니다.
 
-![리소스 목록과 상태](https://raw.githubusercontent.com/david365-lee/persona/v0.2.3/jaewon-k8s-dashboard/media/screenshots/resources.png)
+![실제 RKE2 클러스터의 Pod 목록과 상태](media/screenshots/live-pods.png)
 
-### 컨테이너 상세와 이벤트
+- **컨텍스트 / 네임스페이스**: 상단에서 클러스터와 조회 범위를 선택합니다. **New tab**으로 다른 클러스터를 별도 탭에서 확인합니다.
+- **Status / Ready / Restarts**: 현재 상태, 준비된 컨테이너 수, 누적 재시작 수를 함께 확인합니다. `Running`이어도 `Ready`가 `0/1`이면 아직 준비되지 않은 상태입니다. `Completed`는 작업 완료를 뜻합니다.
+- **Unknown / CrashLoopBackOff**: 노드 연결과 컨테이너 상태를 확인한 뒤 해당 리소스의 로그·Describe·이벤트로 원인을 조사합니다. 화면의 장애 표시는 촬영 당시의 기록입니다.
+- **검색 / 갱신**: `ns:payments`, `status:pending`, `!kube-system` 같은 필터를 조합합니다. **Live**로 자동 갱신하고 **Refresh**로 즉시 다시 조회합니다.
+- **Health report**: 준비되지 않은 리소스와 장애 Pod를 Markdown 보고서로 확인합니다.
 
-일반·init·임시 컨테이너의 이미지와 자원 설정, 현재 상태와 이전 종료 사유를 확인합니다. 조건·이벤트·레이블·주석을 조회하고 YAML 편집, Describe, 셸 등의 작업을 실행합니다.
+### Deployment 상세와 리소스 작업
 
-![컨테이너 상세](https://raw.githubusercontent.com/david365-lee/persona/v0.2.3/jaewon-k8s-dashboard/media/screenshots/container-state.png)
+목록에서 이름을 선택하면 오른쪽에 상세 패널이 열립니다. 아래 화면은 `cert-manager` Deployment의 상세 정보입니다.
+
+![Deployment 상세 패널의 상태, 레이블, 주석과 작업 버튼](media/screenshots/live-deployment.png)
+
+- **Overview**: 네임스페이스, 상태, 준비된 복제본 수와 생성 후 경과 시간을 확인합니다.
+- **Labels / Annotations / Conditions / Events**: 선택자와 Helm 관리 정보, 워크로드 조건 및 이벤트를 확인합니다. 컨테이너 영역에서는 일반·init·임시 컨테이너의 이미지·자원·현재 상태·이전 종료 사유를 볼 수 있습니다.
+- **Logs / Edit YAML / Describe**: 로그 열기, YAML 편집·적용, kubectl 상세 진단을 실행합니다.
+- **Restart / Scale / Delete**: 워크로드 재시작, 복제본 수 변경, 리소스 삭제를 실행합니다. 실행 가능 여부는 리소스 종류와 RBAC 권한에 따라 달라집니다.
+- **Forward**: 지원하는 리소스의 포트를 로컬로 연결합니다. 패널의 **X**로 상세 보기를 닫습니다.
+
+### Helm 릴리스 관리
+
+왼쪽 **Helm releases**를 선택하면 릴리스 목록을 조회합니다. 아래 화면은 `kube-system`의 `rke2-metrics-server` 릴리스입니다.
+
+![Helm 릴리스 목록과 values, manifest, notes, history 관리 버튼](media/screenshots/live-helm.png)
+
+- **Values / Manifest / Notes**: 설치 값, 배포된 Kubernetes 정의, 차트의 사용 안내를 엽니다.
+- **History / Roll back**: 배포 이력을 확인하고 원하는 리비전으로 되돌립니다.
+- **Uninstall**: 확인 후 선택한 릴리스를 제거합니다. 연결된 클러스터에서 `helm` 실행 파일과 필요한 권한이 있어야 합니다.
+- 릴리스 목록에는 네임스페이스·배포 상태·차트 정보를 표시합니다. Helm 상세 패널의 항목 표시는 리소스 상세와 다를 수 있으므로 버전과 설정의 정확한 값은 **Values**, **Manifest**, **History**에서 확인하세요.
 
 ### 여러 컨테이너의 실시간 로그
 
 여러 Pod와 컨테이너의 로그를 모아서 보고, 이전 로그·검색·정규식·강조·복사·저장을 사용합니다.
 
-![실시간 로그](https://raw.githubusercontent.com/david365-lee/persona/v0.2.3/jaewon-k8s-dashboard/media/screenshots/logs.png)
+### 포트 포워드
 
-### Helm과 포트 포워드
-
-Helm 릴리스 목록에서 values·manifest·notes·history를 확인합니다. 포트 포워드는 로컬 주소에 바인딩하고 저장·중지·재시작·브라우저 열기를 지원합니다.
-
-![Helm 릴리스](https://raw.githubusercontent.com/david365-lee/persona/v0.2.3/jaewon-k8s-dashboard/media/screenshots/helm.png)
-
-![포트 포워드](https://raw.githubusercontent.com/david365-lee/persona/v0.2.3/jaewon-k8s-dashboard/media/screenshots/port-forwards.png)
+**Port forwards**에서 로컬 연결을 관리합니다. 포트 포워드는 `127.0.0.1`에 바인딩하고 저장·중지·재시작·브라우저 열기를 지원합니다. 저장한 연결의 자동 시작은 `jaewonK8s.autoStartPortForwards`로 설정합니다.
 
 ## 연결 설정과 복구
 

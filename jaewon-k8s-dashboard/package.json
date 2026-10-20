@@ -2,7 +2,7 @@
   "name": "jaewon-k8s-dashboard",
   "displayName": "Jaewon K8s Dashboard",
   "description": "Kubernetes cluster explorer, merged live logs, Helm, metrics and persistent port forwards inside VS Code.",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "publisher": "jaewon-lee",
   "author": "jaewon",
   "repository": { "type": "git", "url": "https://github.com/david365-lee/persona.git", "directory": "jaewon-k8s-dashboard" },
