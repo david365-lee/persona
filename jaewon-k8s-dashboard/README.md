@@ -1,12 +1,24 @@
 # Jaewon K8s Dashboard
 
+<img src="https://raw.githubusercontent.com/david365-lee/persona/main/jaewon-k8s-dashboard/media/jaewon-icon-128.png" width="128" height="128" alt="Jaewon K8s Dashboard 아이콘">
+
 VS Code에서 실행하는 독립 Kubernetes 대시보드입니다.
 
 한국인 개발자 **jaewon**이 만들어 무료로 배포하는 확장 프로그램입니다. MIT 라이선스로 제공합니다.
 
 Created and distributed for free by **jaewon**, a developer from South Korea. Available under the MIT License.
 
+[Marketplace에서 설치](https://marketplace.visualstudio.com/items?itemName=jaewon-lee.jaewon-k8s-dashboard) · [VSIX 다운로드](https://github.com/david365-lee/persona/releases/latest) · [프로젝트 안내](https://github.com/david365-lee/persona#readme)
+
+## 빠른 시작
+
+1. VS Code 1.90.0 이상과 `kubectl`, 접근할 클러스터의 kubeconfig를 준비합니다. Helm 기능에는 `helm`도 필요합니다.
+2. VS Code 확장 화면에서 **Jaewon K8s Dashboard**를 검색하고, 확장 ID `jaewon-lee.jaewon-k8s-dashboard`를 확인하여 설치합니다.
+3. 터미널에서 `kubectl config get-contexts`와 `kubectl get namespaces`로 연결을 확인합니다.
+
 명령 팔레트에서 **Jaewon K8s: Open Dashboard**를 실행하거나 **Ctrl+Alt+J**를 누르세요. 왼쪽 활동 표시줄의 Jaewon K8s에서도 클러스터와 포트 포워드를 관리할 수 있습니다.
+
+macOS 단축키는 **Cmd+Alt+J**입니다. 활동 표시줄이 보이지 않으면 **Jaewon K8s: Show Sidebar** 명령을 실행하세요.
 
 ## 기능
 
