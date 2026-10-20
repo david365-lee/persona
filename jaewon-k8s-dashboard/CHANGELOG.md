@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.2
+
+- Refresh the extension, dashboard, editor-tab, and activity-bar icons with the blue cluster identity.
+- Include connection recovery fixes and updated documentation screenshots.
+
+## 0.2.1
+
+- Retry settings and context discovery after an initial connection failure when refreshed or polled.
+- Reload namespaces after the API connection recovers or the selected context changes.
+- Preserve startup errors in the connection status instead of leaving “Connecting” displayed.
+
 ## 0.2.0
 
 - Distinguish current Pod failures from historical container termination; account for init and restartable sidecar readiness and restarts.
