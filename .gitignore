@@ -1,0 +1,25 @@
+# Local tools and generated dependencies
+.tools/
+node_modules/
+
+# Logs
+*.log
+
+# Environment files and credentials
+.env
+.env.*
+!.env.example
+!.env.sample
+.aws/
+.ssh/
+.npmrc
+.pypirc
+credentials.json
+service-account*.json
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local agent settings
+.codex/
