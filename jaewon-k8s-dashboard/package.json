@@ -1,0 +1,76 @@
+{
+  "name": "jaewon-k8s-dashboard",
+  "displayName": "Jaewon K8s Dashboard",
+  "description": "Kubernetes cluster explorer, merged live logs, Helm, metrics and persistent port forwards inside VS Code.",
+  "version": "0.1.2",
+  "publisher": "jaewon-lee",
+  "author": "jaewon",
+  "repository": { "type": "git", "url": "https://github.com/david365-lee/persona.git", "directory": "jaewon-k8s-dashboard" },
+  "icon": "media/jaewon-icon-128.png",
+  "license": "MIT",
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Other", "Visualization"],
+  "keywords": ["kubernetes", "kubectl", "helm", "logs", "dashboard"],
+  "main": "./src/extension.js",
+  "activationEvents": ["onStartupFinished", "onUri"],
+  "capabilities": { "untrustedWorkspaces": { "supported": false } },
+  "contributes": {
+    "commands": [
+      { "command": "jaewonK8s.showSidebar", "title": "Jaewon K8s: Show Sidebar", "icon": "$(layout-sidebar-left)" },
+      { "command": "jaewonK8s.open", "title": "Jaewon K8s: Open Dashboard", "icon": "$(dashboard)" },
+      { "command": "jaewonK8s.openNew", "title": "Jaewon K8s: Open Cluster in New Tab" },
+      { "command": "jaewonK8s.refresh", "title": "Jaewon K8s: Refresh", "icon": "$(refresh)" },
+      { "command": "jaewonK8s.health", "title": "Jaewon K8s: Cluster Health Report" },
+      { "command": "jaewonK8s.applyFile", "title": "Jaewon K8s: Apply YAML to Cluster", "icon": "$(cloud-upload)" },
+      { "command": "jaewonK8s.switchContext", "title": "Jaewon K8s: Switch kubectl Context" },
+      { "command": "jaewonK8s.forwardOpen", "title": "Jaewon K8s: Open Forward in Browser", "icon": "$(link-external)" },
+      { "command": "jaewonK8s.forwardStop", "title": "Jaewon K8s: Stop Forward", "icon": "$(debug-stop)" },
+      { "command": "jaewonK8s.forwardStart", "title": "Jaewon K8s: Start Forward", "icon": "$(play)" },
+      { "command": "jaewonK8s.forwardSave", "title": "Jaewon K8s: Save Forward" },
+      { "command": "jaewonK8s.forwardForget", "title": "Jaewon K8s: Forget Forward" }
+    ],
+    "viewsContainers": { "activitybar": [{ "id": "jaewonK8s", "title": "Jaewon K8s", "icon": "media/cluster.svg" }] },
+    "views": { "jaewonK8s": [
+      { "id": "jaewonK8s.dashboard", "name": "Dashboard", "visibility": "visible" },
+      { "id": "jaewonK8s.clusters", "name": "Clusters" },
+      { "id": "jaewonK8s.forwards", "name": "Port Forwards" }
+    ] },
+    "viewsWelcome": [
+      { "view": "jaewonK8s.clusters", "contents": "Configure kubectl to connect a cluster.\n[Open Dashboard](command:jaewonK8s.open)\n[Refresh Clusters](command:jaewonK8s.refresh)" },
+      { "view": "jaewonK8s.forwards", "contents": "Select a Pod or Service in the dashboard and choose Forward. Saved forwards appear here.\n[Open Dashboard](command:jaewonK8s.open)" }
+    ],
+    "menus": {
+      "view/title": [
+        { "command": "jaewonK8s.open", "when": "view == jaewonK8s.clusters", "group": "navigation" },
+        { "command": "jaewonK8s.refresh", "when": "view == jaewonK8s.clusters || view == jaewonK8s.forwards", "group": "navigation" }
+      ],
+      "view/item/context": [
+        { "command": "jaewonK8s.openNew", "when": "view == jaewonK8s.clusters" },
+        { "command": "jaewonK8s.switchContext", "when": "view == jaewonK8s.clusters" },
+        { "command": "jaewonK8s.forwardOpen", "when": "view == jaewonK8s.forwards", "group": "inline@1" },
+        { "command": "jaewonK8s.forwardStop", "when": "view == jaewonK8s.forwards", "group": "inline@2" },
+        { "command": "jaewonK8s.forwardStart", "when": "view == jaewonK8s.forwards" },
+        { "command": "jaewonK8s.forwardSave", "when": "view == jaewonK8s.forwards" },
+        { "command": "jaewonK8s.forwardForget", "when": "view == jaewonK8s.forwards" }
+      ],
+      "editor/title": [{ "command": "jaewonK8s.applyFile", "when": "resourceLangId == yaml", "group": "navigation" }],
+      "explorer/context": [{ "command": "jaewonK8s.applyFile", "when": "resourceExtname == .yaml || resourceExtname == .yml", "group": "7_modification" }]
+    },
+    "keybindings": [{ "command": "jaewonK8s.open", "key": "ctrl+alt+j", "mac": "cmd+alt+j" }],
+    "configuration": {
+      "title": "Jaewon K8s Dashboard",
+      "properties": {
+        "jaewonK8s.kubectlPath": { "type": "string", "default": "kubectl", "scope": "machine", "description": "Path to kubectl executable." },
+        "jaewonK8s.helmPath": { "type": "string", "default": "helm", "scope": "machine", "description": "Path to Helm executable." },
+        "jaewonK8s.kubeconfig": { "type": "string", "default": "", "scope": "machine", "description": "Kubeconfig path(s). Empty uses your environment and home config." },
+        "jaewonK8s.refreshSeconds": { "type": "number", "default": 5, "minimum": 2, "maximum": 300 },
+        "jaewonK8s.metrics": { "type": "boolean", "default": true },
+        "jaewonK8s.logTailLines": { "type": "number", "default": 300, "minimum": 0 },
+        "jaewonK8s.logMaxLines": { "type": "number", "default": 50000, "minimum": 1000 },
+        "jaewonK8s.autoStartPortForwards": { "type": "boolean", "default": true },
+        "jaewonK8s.commandTimeout": { "type": "number", "default": 30000, "minimum": 1000, "description": "Timeout for non-streaming commands in milliseconds." }
+      }
+    }
+  },
+  "scripts": { "test": "node --test src/*.test.js", "package": "node scripts/package.cjs" }
+}

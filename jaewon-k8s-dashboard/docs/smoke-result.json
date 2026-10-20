@@ -1,0 +1,26 @@
+{
+  "timestamp": "2026-10-20T12:29:08.099Z",
+  "passed": [
+    "Extension activates",
+    "Commands registered",
+    "Contexts loaded",
+    "Namespaces loaded",
+    "Live pods: 78",
+    "Live deployments: 31",
+    "Live services: 20",
+    "Live nodes: 3",
+    "Live namespaces: 22",
+    "Live events: 2181",
+    "Live customresourcedefinitions: 199",
+    "Resource details and events",
+    "Live pod CPU/memory",
+    "Helm releases: 15",
+    "Health report generated",
+    "Dashboard webview created",
+    "Dashboard renderer booted and requested live resources",
+    "Multiple cluster tabs",
+    "Log streams: 1",
+    "Live port forwarding starts/stops on auto port"
+  ],
+  "failed": []
+}

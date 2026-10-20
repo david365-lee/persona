@@ -1,6 +1,7 @@
 # Local tools and generated dependencies
 .tools/
 node_modules/
+*.vsix
 
 # Logs
 *.log
