@@ -6,7 +6,8 @@ const assert = require('node:assert/strict');
 async function run() {
   const report = { timestamp: new Date().toISOString(), passed: [], failed: [] };
   try {
-    const ext = vscode.extensions.getExtension('jaewon.jaewon-k8s-dashboard'); assert.ok(ext, 'extension discovered');
+    const pkg = require('../package.json');
+    const ext = vscode.extensions.getExtension(`${pkg.publisher}.${pkg.name}`); assert.ok(ext, 'extension discovered');
     const api = await ext.activate(); report.passed.push('Extension activates');
     const commands = await vscode.commands.getCommands(true); for (const id of ['open', 'openNew', 'applyFile', 'health', 'forwardStart']) assert.ok(commands.includes('jaewonK8s.' + id)); report.passed.push('Commands registered');
     const b = api.backend, contexts = await b.contexts(); assert.ok(contexts.some(c => c.name === 'local-rke2')); report.passed.push('Contexts loaded');

@@ -8,8 +8,8 @@ const { html } = require('./webview');
 function activate(context) {
   const backend = new Backend(context);
   const panels = new Set(); let current = { context: '', namespace: 'default' }; let forwardTree;
-  const notify = () => { clusterTree.changed.fire(); forwardTree.changed.fire(); for (const p of panels) p.webview.postMessage({ event: 'refresh' }); };
-  const forwards = new Forwards(context, backend, () => { forwardTree?.changed.fire(); for (const p of panels) p.webview.postMessage({ event: 'refresh' }); });
+  const notify = () => { clusterTree.changed.fire(); forwardTree.changed.fire(); for (const p of panels) if (p.visible) p.webview.postMessage({ event: 'refresh' }); };
+  const forwards = new Forwards(context, backend, () => { forwardTree?.changed.fire(); for (const p of panels) if (p.visible) p.webview.postMessage({ event: 'refresh' }); });
   const logs = new Logs(context, backend);
   const dashboardTree = new Tree(async () => [
     { label: 'Open Dashboard', iconPath: new vscode.ThemeIcon('dashboard'), command: { command: 'jaewonK8s.open', title: 'Open Dashboard' } },
@@ -35,7 +35,14 @@ function activate(context) {
     const selected = await pickContext(value); if (!selected) throw Error('No Kubernetes contexts found. Configure kubectl first.');
     if (!forceNew) { for (const p of panels) if (p.clusterContext === selected) { p.reveal(); return; } }
     const panel = vscode.window.createWebviewPanel('jaewonK8s.dashboard', `K8s: ${selected}`, vscode.ViewColumn.Active, { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'media')] });
-    panel.clusterContext = selected; current.context = selected; panels.add(panel);
+    attachPanel(panel, selected);
+  }
+  function attachPanel(panel, selected, restoredState = {}) {
+    panel.webview.options = { enableScripts: true, localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'media')] };
+    panel.iconPath = vscode.Uri.joinPath(context.extensionUri, 'media', 'jaewon-icon-128.png');
+    panel.title = `K8s: ${selected}`;
+    panel.clusterContext = selected; panel.clusterNamespace = restoredState.namespace || 'default';
+    current = { context: selected, namespace: panel.clusterNamespace }; panels.add(panel);
     panel.webview.html = html(panel.webview, context.extensionUri, 'dashboard.js');
     const receiver = panel.webview.onDidReceiveMessage(async msg => {
       if (!msg || !Number.isSafeInteger(msg.id) || typeof msg.command !== 'string') return;
@@ -44,11 +51,12 @@ function activate(context) {
         const cluster = a.context || panel.clusterContext;
         if (typeof cluster !== 'string') throw Error('Invalid context');
         switch (msg.command) {
-          case 'settings': result = { refreshSeconds: backend.config('refreshSeconds', 5), metrics: backend.config('metrics', true), initialContext: panel.clusterContext }; break;
+          case 'settings': result = { refreshSeconds: backend.config('refreshSeconds', 5), metrics: backend.config('metrics', true), initialContext: panel.clusterContext, restored: !!restoredState.context, visible: panel.visible }; break;
           case 'contexts': result = (await backend.contexts()).map(c => ({ ...c, current: c.name === panel.clusterContext })); break;
           case 'namespaces': result = await backend.namespaces(cluster); break;
           case 'list':
-            panel.clusterContext = cluster; panel.title = `K8s: ${cluster}`; current = { context: cluster, namespace: a.namespace || 'default' };
+            panel.clusterContext = cluster; panel.clusterNamespace = a.namespace || 'default'; panel.title = `K8s: ${cluster}`;
+            if (panel.active) current = { context: cluster, namespace: panel.clusterNamespace };
             result = await backend.list(cluster, a.namespace, a.kind); break;
           case 'detail': result = await backend.detail(cluster, a.namespace, a.kind, a.name); break;
           case 'metrics': result = await backend.metrics(cluster, a.namespace, a.kind); break;
@@ -75,8 +83,20 @@ function activate(context) {
       } catch (error) { await panel.webview.postMessage({ id: msg.id, error: error.message || String(error) }); }
     });
     panel.onDidDispose(() => { receiver.dispose(); panels.delete(panel); });
-    panel.onDidChangeViewState(() => { if (panel.active) current.context = panel.clusterContext; });
+    const visibility = panel.onDidChangeViewState(() => {
+      if (panel.active) current = { context: panel.clusterContext, namespace: panel.clusterNamespace };
+      panel.webview.postMessage({ event: 'visibility', visible: panel.visible });
+    });
+    panel.onDidDispose(() => visibility.dispose());
   }
+  context.subscriptions.push(vscode.window.registerWebviewPanelSerializer('jaewonK8s.dashboard', {
+    async deserializeWebviewPanel(panel, state) {
+      const saved = state && typeof state === 'object' ? state : {};
+      const selected = await pickContext(typeof saved.context === 'string' ? saved.context : undefined);
+      if (!selected) { panel.dispose(); return; }
+      attachPanel(panel, selected, saved);
+    }
+  }));
   const guard = fn => (...args) => Promise.resolve().then(() => fn(...args)).catch(e => vscode.window.showErrorMessage(`Jaewon K8s: ${e.message}`));
   const command = (name, fn) => context.subscriptions.push(vscode.commands.registerCommand(`jaewonK8s.${name}`, guard(fn)));
   command('open', value => open(value)); command('openNew', value => open(value, true)); command('refresh', notify); command('health', health);

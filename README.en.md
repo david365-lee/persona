@@ -12,6 +12,16 @@ A VS Code extension for exploring Kubernetes clusters and managing logs, Helm re
 
 ## Features
 
+### Improvements in 0.2.0
+
+- Distinguish current Pod failures from restart history, including init container and sidecar status and readiness.
+- Inspect regular, init, and ephemeral containers, workload templates, and previous termination reasons.
+- Restore dashboard context, namespace, and filters when reopening VS Code. Automatic refresh pauses while the dashboard is hidden.
+- Preserve set-based label selectors for workload shells and offer only running Pods that are not being deleted.
+- Display the custom icon in the dashboard header and editor tab.
+
+[REA analysis and validation record (Korean)](jaewon-k8s-dashboard/docs/rea-expansion-0.2.0.md)
+
 | Feature | Description |
 | --- | --- |
 | Cluster explorer | Dashboard tabs for each context, namespace selection, resource filtering, sorting, and pagination |

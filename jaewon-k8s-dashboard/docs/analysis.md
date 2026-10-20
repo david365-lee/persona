@@ -1,5 +1,7 @@
 # REA 분석 및 구현 경계
 
+후속 조사와 0.2.0 구현·검증 결과는 [REA 심층 분석](rea-expansion-0.2.0.md)을 참고하세요. 아래는 최초 조사 기록입니다. 현재 확장 ID는 `jaewon-lee.jaewon-k8s-dashboard`입니다.
+
 대상: 설치된 VS Code 확장 `utiltools.kubernetes-dashboard-utiltools` 1.0.4.
 
 아티팩트 SHA-256: `76b3776152a498bb6e716d7a6ae8e46936e830c26f5b1bc8cd6925a27e8bc9e0`.

@@ -1,20 +1,7 @@
 'use strict';
 const vscode = require('vscode');
 const { html } = require('./webview');
-function selectorFor(resource) {
-  const selector = resource.spec?.selector;
-  if (typeof selector === 'string') return selector;
-  const labels = selector?.matchLabels || (selector && !selector.matchExpressions ? selector : {});
-  const parts = Object.entries(labels).map(([key, value]) => `${key}=${value}`);
-  for (const expression of selector?.matchExpressions || []) {
-    const values = expression.values || [];
-    if (expression.operator === 'In') parts.push(`${expression.key} in (${values.join(',')})`);
-    else if (expression.operator === 'NotIn') parts.push(`${expression.key} notin (${values.join(',')})`);
-    else if (expression.operator === 'Exists') parts.push(expression.key);
-    else if (expression.operator === 'DoesNotExist') parts.push(`!${expression.key}`);
-  }
-  return parts.join(',');
-}
+const { selectorFor } = require('./selectors');
 class Logs {
   constructor(extensionContext, backend) { this.extensionContext = extensionContext; this.backend = backend; this.sessions = new Set(); }
   dispose() { for (const session of [...this.sessions]) session.panel.dispose(); }

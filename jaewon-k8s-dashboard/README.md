@@ -24,6 +24,12 @@ macOS 단축키는 **Cmd+Alt+J**입니다. 활동 표시줄이 보이지 않으�
 
 ## 기능
 
+### 0.2.0 개선
+
+Pod의 현재 장애와 과거 재시작 이력을 구분하고, init·사이드카의 준비 상태를 반영합니다. 상세 화면에서 일반·init·임시 컨테이너, 워크로드 템플릿 및 이전 종료 사유를 볼 수 있습니다. 대시보드 탭 복원, 숨겨진 화면의 자동 갱신 중지, 집합 기반 라벨 조건을 유지하는 셸 대상 선택을 추가했습니다. 생성한 아이콘은 대시보드 헤더와 탭에도 표시합니다.
+
+[REA 심층 분석과 검증 기록](https://github.com/david365-lee/persona/blob/main/jaewon-k8s-dashboard/docs/rea-expansion-0.2.0.md)
+
 - 컨텍스트별 독립 탭, 네임스페이스 선택, 리소스 검색·정렬·페이지 이동
 - Pods, Deployments, StatefulSets, DaemonSets, ReplicaSets, Jobs, CronJobs, Services, Ingresses, ConfigMaps, Secrets, PVCs, Nodes, Namespaces, Events, CRDs
 - 컨테이너·조건·이벤트·레이블·주석·Secret 개별 키 확인, CPU/메모리 이력과 제한값

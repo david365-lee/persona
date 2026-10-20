@@ -1,5 +1,7 @@
 # Reference extension feature inventory
 
+Follow-up: [REA analysis and 0.2.0 implementation ledger (Korean)](rea-expansion-0.2.0.md). The original unchecked list below is a reference inventory, not a claim that every capability is missing or fully equivalent. Current improvements cover shared Pod health logic, container lifecycle details, workload shell selectors, dashboard restoration, and visibility-aware refresh. Sidebar webview parity and virtualized tables remain open.
+
 Evidence: installed `utiltools.kubernetes-dashboard-utiltools` version **1.0.4**, `package.json` and `README.md` under `C:/Users/zosel/.vscode/extensions/utiltools.kubernetes-dashboard-utiltools-1.0.4`. This is a static manifest and advertised behavior inventory, not a report of executed or verified cluster operations. No implementation source was copied. Manifest keywords are search metadata and are not evidence of additional features.
 
 ## Feature parity checklist

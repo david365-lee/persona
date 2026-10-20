@@ -4,6 +4,8 @@ const cp = require('child_process');
 const fs = require('fs/promises');
 const os = require('os');
 const path = require('path');
+const { podStatus, podReady, podRestarts, podNeedsAttention } = require('../media/resource-model');
+const { selectorFor } = require('./selectors');
 
 class Backend {
   constructor(extensionContext) {
@@ -60,6 +62,8 @@ class Backend {
     const resource = JSON.parse(await this.run(context, ['get', kind, name, ...this.objectScope(namespace), '-o', 'json']));
     let events = [];
     try { events = JSON.parse(await this.run(context, ['get', 'events', ...this.scope(namespace), '--field-selector', `involvedObject.uid=${resource.metadata.uid}`, '-o', 'json'])).items || []; } catch (_) { /* RBAC may exclude events. */ }
+    const eventTime = event => Date.parse(event.lastTimestamp || event.series?.lastObservedTime || event.eventTime || event.metadata?.creationTimestamp || '') || 0;
+    events.sort((a, b) => eventTime(a) - eventTime(b));
     return { resource, events };
   }
   async showText(title, text, language = 'plaintext') {
@@ -102,15 +106,18 @@ class Backend {
       let podName = name;
       if (!['pods', 'pod'].includes(kind)) {
         const resource = JSON.parse(await this.run(context, ['get', kind, name, ...scope, '-o', 'json']));
-        const selector = Object.entries(resource.spec?.selector?.matchLabels || resource.spec?.selector || {}).map(([k,v]) => `${k}=${v}`).join(',');
+        const selector = selectorFor(resource);
         if (!selector) throw new Error('This resource has no pod selector.');
         const pods = JSON.parse(await this.run(context, ['get', 'pods', ...scope, '-l', selector, '-o', 'json'])).items || [];
-        const choice = await vscode.window.showQuickPick(pods.map(p => p.metadata.name), { title: 'Pod to open shell in' });
+        const running = pods.filter(p => p.status?.phase === 'Running' && !p.metadata?.deletionTimestamp);
+        if (!running.length) throw new Error('No running pods are available for this resource.');
+        const choice = await vscode.window.showQuickPick(running.map(p => p.metadata.name), { title: 'Pod to open shell in' });
         if (!choice) return { cancelled: true }; podName = choice;
       }
+      const pod = JSON.parse(await this.run(context, ['get', 'pod', podName, ...scope, '-o', 'json']));
+      if (pod.status?.phase !== 'Running' || pod.metadata?.deletionTimestamp) throw new Error('Shell requires a running pod that is not terminating.');
       let container = payload.container;
       if (!container) {
-        const pod = JSON.parse(await this.run(context, ['get', 'pod', podName, ...scope, '-o', 'json']));
         const containers = (pod.spec?.containers || []).map(c => c.name);
         container = containers.length > 1 ? await vscode.window.showQuickPick(containers, { title: 'Container' }) : containers[0];
         if (!container) return { cancelled: true };
@@ -169,10 +176,8 @@ class Backend {
       for (const item of items) {
         const id = `${item.metadata.namespace ? item.metadata.namespace + '/' : ''}${item.metadata.name}`; const s = item.status || {};
         if (i === 0) {
-          const containers = [...(s.initContainerStatuses || []), ...(s.containerStatuses || [])];
-          const reasons = containers.flatMap(c => [c.state?.waiting?.reason, c.state?.terminated?.reason, c.lastState?.terminated?.reason]).filter(Boolean);
-          const restarts = containers.reduce((n,c) => n + (c.restartCount || 0),0);
-          if (['Pending', 'Failed', 'Unknown'].includes(s.phase) || reasons.some(r => /BackOff|Error|OOMKilled/.test(r)) || restarts > 0) problems.push(`- ${id}: ${s.phase}; ${reasons.join(', ')}; restarts=${restarts}`);
+          const restarts = podRestarts(item);
+          if (podNeedsAttention(item) || restarts > 0) problems.push(`- ${id}: ${podStatus(item)}; ready=${podReady(item)}; restarts=${restarts}${!podNeedsAttention(item) && restarts > 0 ? ' (restart history; currently healthy)' : ''}`);
         } else if (i < 3 && (s.readyReplicas || 0) < (item.spec.replicas ?? 1)) problems.push(`- ${id}: ${s.readyReplicas || 0}/${item.spec.replicas ?? 1} ready`);
         else if (i === 3 && !s.conditions?.some(c => c.type === 'Ready' && c.status === 'True')) problems.push(`- ${id}: NotReady`);
       }

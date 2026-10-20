@@ -1,0 +1,164 @@
+{
+  "evidence_id": "ev_74b610c8c4ec4e69c497e190e3418f0056e217196d305103001de87679352788",
+  "subject": null,
+  "provider": {
+    "id": "rea-javascript-application-workflows",
+    "name": "REA JavaScript application workflows",
+    "version": "1"
+  },
+  "analysis_profile": null,
+  "predicate_type": "rea.javascript-semantic-trace",
+  "operation": "trace_javascript_semantics",
+  "parameters": {
+    "application_evidence_id": "ev_3a1cde005c4c69ad1ae773fb1ed33b60235fae9b75733cbac8dbce1d21794db9",
+    "query": {
+      "seed": {
+        "kind": "property",
+        "name": "registerWebviewPanelSerializer"
+      },
+      "direction": "callers",
+      "allowed_relations": [
+        "calls",
+        "reads-property",
+        "registers-listener"
+      ],
+      "include_ambiguous_dynamic_edges": false,
+      "expected": null
+    }
+  },
+  "raw_result": null,
+  "normalized_result": {
+    "query_id": "jsrq_068dd1835112b58375732049cb6ff07c6b1d9120e1dd51bc8619a83dd2663070",
+    "source_graph_id": "jsrg_82d68a9f4e424727537d9cbeda831db3f887268ebc6bee534f1ef4a3ba565148",
+    "seed": {
+      "kind": "property",
+      "name": "registerWebviewPanelSerializer"
+    },
+    "direction": "callers",
+    "status": "found",
+    "seed_node_ids": [
+      "jsrg_node_4365d751e51584311300570bd29b1ce583400de9582f9700345ae49f00988a35"
+    ],
+    "evidence_contexts": [
+      {
+        "authority": "ast-static-analysis",
+        "state": "observed",
+        "confidence": "exact",
+        "artifact": {
+          "available": true,
+          "artifact_id": "art_0f16503ffbefc1d557b17c0faf9af90d1da06cc41c19eafff8d950480aa8817f",
+          "sha256": "0f16503ffbefc1d557b17c0faf9af90d1da06cc41c19eafff8d950480aa8817f"
+        },
+        "extractor": {
+          "name": "rea-javascript-semantic-analysis",
+          "version": "1",
+          "operation": "analyze_javascript_application",
+          "executable_sha256": null
+        },
+        "coverage": {
+          "status": "complete",
+          "truncated": false,
+          "omitted_count": 0,
+          "limits": []
+        },
+        "limitations": [],
+        "evidence_ids": [],
+        "context_id": "jsrg_evidence_57b395a02b2d2940994ee57ff4a1a3559921db974f7c0dea67dcc120872f5b51"
+      }
+    ],
+    "nodes": [
+      {
+        "kind": "property-slot",
+        "identity": {
+          "artifact_sha256": "0f16503ffbefc1d557b17c0faf9af90d1da06cc41c19eafff8d950480aa8817f",
+          "module_path": "dist/extension.js",
+          "source_range": null,
+          "role_key": "property:[\"scope:program:0:95740:binding:w\",[\"window\",\"registerWebviewPanelSerializer\"]]"
+        },
+        "function_node_id": null,
+        "application_node_ids": [
+          "jag_node_b3b4137cebec840df01bd6972cc69dd5fc882e3d3a5d9f4b9a1a03bf187fcd1a"
+        ],
+        "label": "registerWebviewPanelSerializer",
+        "properties": {
+          "name": "registerWebviewPanelSerializer",
+          "property_path": [
+            "window",
+            "registerWebviewPanelSerializer"
+          ],
+          "property_pointer": "/window/registerWebviewPanelSerializer",
+          "object_binding_id": "scope:program:0:95740:binding:w",
+          "presence": "unknown-coverage",
+          "value_status": "unknown",
+          "value_coverage": null
+        },
+        "evidence": {
+          "context_id": "jsrg_evidence_57b395a02b2d2940994ee57ff4a1a3559921db974f7c0dea67dcc120872f5b51",
+          "location": {
+            "available": true,
+            "value": {
+              "kind": "artifact-path",
+              "path": "dist/extension.js"
+            }
+          }
+        },
+        "node_id": "jsrg_node_4365d751e51584311300570bd29b1ce583400de9582f9700345ae49f00988a35"
+      }
+    ],
+    "relations": [],
+    "unknowns": [],
+    "expected_match_node_ids": [],
+    "summary": {
+      "total_seed_matches": 1,
+      "traversed_nodes": 1,
+      "traversed_relations": 0,
+      "traversed_functions": 0,
+      "traversed_modules": 1,
+      "relevant_unknowns": 0
+    },
+    "coverage": {
+      "status": "partial"
+    },
+    "limitations": [
+      "Boundary extraction covers unshadowed JSON/global coercions plus parse and validation method candidates.",
+      "Child-process extraction covers asynchronous node:child_process creation, literal argv/env/stdio options, exit/error listeners, and kill signals.",
+      "Configuration extraction covers process.env, process.argv, node:fs reads, and direct logical defaults.",
+      "Event extraction covers EventEmitter-style literal registrations, removals, and dispatch candidates; dynamic names remain unknown.",
+      "Function fingerprints are static candidates; equal digests can remain ambiguous and do not prove behavioral equivalence.",
+      "Local data flow does not claim control-flow-sensitive reaching definitions or arbitrary dynamic property resolution.",
+      "Promise ownership covers explicit unshadowed Promise construction, static factories, aggregation, chaining, and await syntax only.",
+      "Request extraction covers fetch, WebSocket, node:http/node:https construction, direct option fields, and exact local response consumers.",
+      "Resource extraction covers built-in filesystem/network acquisition and exact local close/destroy/end handles.",
+      "Semantic graph reachability is a static inference and does not prove runtime execution.",
+      "The semantic graph contains static syntax observations and conservative relationship candidates; it does not claim runtime execution.",
+      "Timer extraction covers global or node:timers scheduling and exact local-handle cancellation."
+    ],
+    "source_evidence_id": "ev_3a1cde005c4c69ad1ae773fb1ed33b60235fae9b75733cbac8dbce1d21794db9",
+    "evidence_links": [
+      "ev_3a1cde005c4c69ad1ae773fb1ed33b60235fae9b75733cbac8dbce1d21794db9"
+    ]
+  },
+  "confidence": "inferred",
+  "authority": "analyst-inference",
+  "environment": null,
+  "limitations": [
+    "Artifact identity is unavailable for this observation.",
+    "Boundary extraction covers unshadowed JSON/global coercions plus parse and validation method candidates.",
+    "Child-process extraction covers asynchronous node:child_process creation, literal argv/env/stdio options, exit/error listeners, and kill signals.",
+    "Configuration extraction covers process.env, process.argv, node:fs reads, and direct logical defaults.",
+    "Event extraction covers EventEmitter-style literal registrations, removals, and dispatch candidates; dynamic names remain unknown.",
+    "Function fingerprints are static candidates; equal digests can remain ambiguous and do not prove behavioral equivalence.",
+    "Local data flow does not claim control-flow-sensitive reaching definitions or arbitrary dynamic property resolution.",
+    "Promise ownership covers explicit unshadowed Promise construction, static factories, aggregation, chaining, and await syntax only.",
+    "Request extraction covers fetch, WebSocket, node:http/node:https construction, direct option fields, and exact local response consumers.",
+    "Resource extraction covers built-in filesystem/network acquisition and exact local close/destroy/end handles.",
+    "Semantic graph reachability is a static inference and does not prove runtime execution.",
+    "The semantic graph contains static syntax observations and conservative relationship candidates; it does not claim runtime execution.",
+    "Timer extraction covers global or node:timers scheduling and exact local-handle cancellation."
+  ],
+  "relationship_coverage": null,
+  "locations": [],
+  "evidence_links": [
+    "ev_3a1cde005c4c69ad1ae773fb1ed33b60235fae9b75733cbac8dbce1d21794db9"
+  ]
+}
