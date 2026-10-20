@@ -24,6 +24,10 @@ macOS 단축키는 **Cmd+Alt+J**입니다. 활동 표시줄이 보이지 않으�
 
 ## 기능
 
+### 0.2.3 최종 배포판
+
+새 파란 클러스터 아이콘, 연결 실패 후 재시도, 네임스페이스 복구 및 컨테이너 상태 개선을 포함합니다. Marketplace의 상세 설명과 변경 이력에서도 이번 업데이트 내용을 확인할 수 있습니다.
+
 ### 0.2.2 업데이트
 
 - 첫 연결 실패 후 새로고침·자동 갱신으로 연결 설정과 네임스페이스 조회를 다시 시도합니다.
@@ -44,6 +48,44 @@ Pod의 현재 장애와 과거 재시작 이력을 구분하고, init·사이드
 - 자동 재연결·저장·자동 시작 포트 포워드 (127.0.0.1 바인딩)
 - Helm 릴리스·values·manifest·notes·history·rollback·uninstall
 - 장애 Pod·재시작 횟수·준비되지 않은 워크로드/노드의 Markdown 상태 보고서
+
+## 화면 안내
+
+아래 화면은 실제 대시보드 UI에 예제 데이터를 넣어 촬영했습니다. 실제 클러스터의 리소스 수와 상태는 연결 환경에 따라 달라집니다.
+
+### 리소스 탐색과 상태 확인
+
+컨텍스트와 네임스페이스를 고르고 리소스를 검색·정렬합니다. Pod의 현재 장애와 과거 종료 이력을 구분하고, 컨테이너 준비 상태·재시작 수·노드·IP를 확인합니다.
+
+![리소스 목록과 상태](https://raw.githubusercontent.com/david365-lee/persona/v0.2.3/jaewon-k8s-dashboard/media/screenshots/resources.png)
+
+### 컨테이너 상세와 이벤트
+
+일반·init·임시 컨테이너의 이미지와 자원 설정, 현재 상태와 이전 종료 사유를 확인합니다. 조건·이벤트·레이블·주석을 조회하고 YAML 편집, Describe, 셸 등의 작업을 실행합니다.
+
+![컨테이너 상세](https://raw.githubusercontent.com/david365-lee/persona/v0.2.3/jaewon-k8s-dashboard/media/screenshots/container-state.png)
+
+### 여러 컨테이너의 실시간 로그
+
+여러 Pod와 컨테이너의 로그를 모아서 보고, 이전 로그·검색·정규식·강조·복사·저장을 사용합니다.
+
+![실시간 로그](https://raw.githubusercontent.com/david365-lee/persona/v0.2.3/jaewon-k8s-dashboard/media/screenshots/logs.png)
+
+### Helm과 포트 포워드
+
+Helm 릴리스 목록에서 values·manifest·notes·history를 확인합니다. 포트 포워드는 로컬 주소에 바인딩하고 저장·중지·재시작·브라우저 열기를 지원합니다.
+
+![Helm 릴리스](https://raw.githubusercontent.com/david365-lee/persona/v0.2.3/jaewon-k8s-dashboard/media/screenshots/helm.png)
+
+![포트 포워드](https://raw.githubusercontent.com/david365-lee/persona/v0.2.3/jaewon-k8s-dashboard/media/screenshots/port-forwards.png)
+
+## 연결 설정과 복구
+
+- 기본적으로 로컬 `kubectl`과 환경 변수 `KUBECONFIG` 또는 홈 디렉터리의 `.kube/config`를 사용합니다. 별도 파일은 `jaewonK8s.kubeconfig`에 지정하세요.
+- k9s에서 `--kubeconfig`로 파일을 선택한다면 같은 파일을 설정하고 같은 컨텍스트를 선택하세요. 별도의 `kubectl` 경로가 필요하면 `jaewonK8s.kubectlPath`를 지정합니다.
+- 첫 연결 실패 후 **Refresh**를 누르거나 **Live** 자동 갱신을 켜면 설정·컨텍스트·네임스페이스 조회를 다시 시도합니다.
+- API 주소가 `127.0.0.1`이고 연결이 거부된다면 클러스터 접속에 사용하는 로컬 서비스나 SSH 터널이 실행 중인지 확인하세요. 대시보드는 해당 터널을 자동으로 생성하지 않습니다.
+- 같은 kubeconfig와 컨텍스트로 `kubectl --context <컨텍스트> get namespaces`가 되는지 확인하세요. 리소스 조회와 작업에는 해당 사용자의 RBAC 권한이 적용됩니다.
 
 ## 설정
 

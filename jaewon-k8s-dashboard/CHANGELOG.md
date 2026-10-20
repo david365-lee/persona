@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.3
+
+- Publish the final blue cluster icons across the extension listing, dashboard, editor tabs, and activity bar.
+- Expand the Marketplace overview with resource, container, log, Helm, and port-forward screenshots and connection setup guidance.
+- Expose this changelog in the Marketplace and VS Code extension details.
+- Include the connection discovery and namespace recovery fixes from 0.2.1.
+
 ## 0.2.2
 
 - Refresh the extension, dashboard, editor-tab, and activity-bar icons with the blue cluster identity.
