@@ -4,6 +4,8 @@
 
 # Jaewon K8s Dashboard
 
+[한국어](README.md) · [English](README.en.md) · [日本語](README.ja.md) · [简体中文](README.zh-CN.md)
+
 VS Code 안에서 Kubernetes 클러스터를 탐색하고 로그, Helm 릴리스, 포트 포워드를 관리하는 확장 프로그램입니다. 한국인 개발자 **jaewon**이 제작했으며, MIT 라이선스로 무료 제공합니다.
 
 [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=jaewon-lee.jaewon-k8s-dashboard) · [릴리스 및 VSIX 다운로드](https://github.com/david365-lee/persona/releases/latest) · [확장 프로그램 상세 안내](jaewon-k8s-dashboard/README.md)

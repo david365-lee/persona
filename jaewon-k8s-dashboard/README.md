@@ -1,5 +1,7 @@
 # Jaewon K8s Dashboard
 
+[한국어](https://github.com/david365-lee/persona/blob/main/README.md) · [English](https://github.com/david365-lee/persona/blob/main/README.en.md) · [日本語](https://github.com/david365-lee/persona/blob/main/README.ja.md) · [简体中文](https://github.com/david365-lee/persona/blob/main/README.zh-CN.md)
+
 <img src="https://raw.githubusercontent.com/david365-lee/persona/main/jaewon-k8s-dashboard/media/jaewon-icon-128.png" width="128" height="128" alt="Jaewon K8s Dashboard 아이콘">
 
 VS Code에서 실행하는 독립 Kubernetes 대시보드입니다.
