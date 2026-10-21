@@ -8,7 +8,13 @@ class Forwards {
     for (const saved of context.globalState.get('savedForwards', [])) {
       const entry = { ...saved, status: 'stopped', wanted: false, process: undefined, timer: undefined, attempt: 0 };
       this.entries.set(entry.id, entry);
-      if (backend.config('autoStartPortForwards', true) && entry.autoStart) this.start(entry.id);
+      if (backend.config('autoStartPortForwards', true) && entry.autoStart) {
+        if (backend.connections) {
+          entry.wanted = true;
+          void backend.connections.ready.then(() => { if (!this.closed && entry.wanted && this.entries.has(entry.id)) this.start(entry.id); }).catch(error => { entry.status = 'stopped'; entry.error = error.message; this.changed(); });
+        }
+        else this.start(entry.id);
+      }
     }
   }
   list() { return [...this.entries.values()].map(({ process, timer, wanted, attempt, ...e }) => e); }
@@ -30,7 +36,9 @@ class Forwards {
   start(id) {
     const e = this.entries.get(id); if (!e || this.closed || e.process) return;
     clearTimeout(e.timer); e.wanted = true; e.status = 'connecting'; this.changed();
-    const child = this.backend.spawn(e.context, ['port-forward', `${e.kind}/${e.name}`, `${e.requestedLocalPort || ''}:${e.remotePort}`, '-n', e.namespace, '--address=127.0.0.1']);
+    let child;
+    try { child = this.backend.spawn(e.context, ['port-forward', `${e.kind}/${e.name}`, `${e.requestedLocalPort || ''}:${e.remotePort}`, '-n', e.namespace, '--address=127.0.0.1']); }
+    catch (error) { e.status = 'stopped'; e.wanted = false; e.error = error.message; this.changed(); return; }
     e.process = child; let output = ''; let finished = false;
     const data = chunk => {
       output = (output + String(chunk)).slice(-4000);

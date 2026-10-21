@@ -7,16 +7,18 @@ const { html } = require('./webview');
 
 function activate(context) {
   const backend = new Backend(context);
+  const contextLabel = id => backend.connections?.profiles.find(p => p.id === id)?.name || id;
   const panels = new Set(); let current = { context: '', namespace: 'default' }; let forwardTree;
   const notify = () => { clusterTree.changed.fire(); forwardTree.changed.fire(); for (const p of panels) if (p.visible) p.webview.postMessage({ event: 'refresh' }); };
   const forwards = new Forwards(context, backend, () => { forwardTree?.changed.fire(); for (const p of panels) if (p.visible) p.webview.postMessage({ event: 'refresh' }); });
   const logs = new Logs(context, backend);
   const dashboardTree = new Tree(async () => [
+    { label: 'Connect Local / Remote Cluster', iconPath: new vscode.ThemeIcon('plug'), command: { command: 'jaewonK8s.connect', title: 'Connect Cluster' } },
     { label: 'Open Dashboard', iconPath: new vscode.ThemeIcon('dashboard'), command: { command: 'jaewonK8s.open', title: 'Open Dashboard' } },
     { label: 'Open Cluster in New Tab', iconPath: new vscode.ThemeIcon('split-horizontal'), command: { command: 'jaewonK8s.openNew', title: 'Open Cluster in New Tab' } },
     { label: 'Cluster Health Report', iconPath: new vscode.ThemeIcon('pulse'), command: { command: 'jaewonK8s.health', title: 'Cluster Health Report' } }
   ]);
-  const clusterTree = new Tree(async () => (await backend.contexts()).map(c => ({ label: c.name, description: c.current ? 'current' : c.cluster, contextName: c.name, iconPath: new vscode.ThemeIcon('server-environment'), command: { command: 'jaewonK8s.open', title: 'Open Dashboard', arguments: [c.name] } })));
+  const clusterTree = new Tree(async () => (await backend.contexts()).map(c => ({ label: c.label || c.name, description: c.current ? 'current' : c.cluster, contextName: c.name, iconPath: new vscode.ThemeIcon('server-environment'), command: { command: 'jaewonK8s.open', title: 'Open Dashboard', arguments: [c.name] } })));
   forwardTree = new Tree(async () => forwards.list().map(f => ({ label: `${f.name} ${f.localPort || 'auto'} → ${f.remotePort}`, description: f.status, forwardId: f.id, tooltip: `${f.context} / ${f.namespace}${f.error ? '\n' + f.error : ''}`, iconPath: new vscode.ThemeIcon(f.status === 'running' ? 'plug' : 'debug-disconnect') })));
   async function pickContext(value) {
     if (typeof value === 'string' && value) return value;
@@ -32,7 +34,10 @@ function activate(context) {
     return { message: 'Health report opened and copied to clipboard.' };
   }
   async function open(value, forceNew = false) {
-    const selected = await pickContext(value); if (!selected) throw Error('No Kubernetes contexts found. Configure kubectl first.');
+    let selected;
+    try { selected = await pickContext(value); } catch (_) { /* Connection wizard remains available without a local kubeconfig. */ }
+    if (!selected) selected = await backend.connect();
+    if (!selected) return;
     if (!forceNew) { for (const p of panels) if (p.clusterContext === selected) { p.reveal(); return; } }
     const panel = vscode.window.createWebviewPanel('jaewonK8s.dashboard', `K8s: ${selected}`, vscode.ViewColumn.Active, { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'media')] });
     attachPanel(panel, selected);
@@ -40,7 +45,7 @@ function activate(context) {
   function attachPanel(panel, selected, restoredState = {}) {
     panel.webview.options = { enableScripts: true, localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'media')] };
     panel.iconPath = vscode.Uri.joinPath(context.extensionUri, 'media', 'jaewon-icon-128.png');
-    panel.title = `K8s: ${selected}`;
+    panel.title = `K8s: ${contextLabel(selected)}`;
     panel.clusterContext = selected; panel.clusterNamespace = restoredState.namespace || 'default';
     current = { context: selected, namespace: panel.clusterNamespace }; panels.add(panel);
     panel.webview.html = html(panel.webview, context.extensionUri, 'dashboard.js');
@@ -53,9 +58,11 @@ function activate(context) {
         switch (msg.command) {
           case 'settings': result = { refreshSeconds: backend.config('refreshSeconds', 5), metrics: backend.config('metrics', true), initialContext: panel.clusterContext, restored: !!restoredState.context, visible: panel.visible }; break;
           case 'contexts': result = (await backend.contexts()).map(c => ({ ...c, current: c.name === panel.clusterContext })); break;
+          case 'connect': { const selected = await backend.connect(); if (selected) { panel.clusterContext = selected; panel.clusterNamespace = ''; panel.title = `K8s: ${contextLabel(selected)}`; current = { context: selected, namespace: '' }; } clusterTree.changed.fire(); forwardTree.changed.fire(); result = selected || null; break; }
+          case 'createStorageClass': result = await backend.createStorageClass(cluster); break;
           case 'namespaces': result = await backend.namespaces(cluster); break;
           case 'list':
-            panel.clusterContext = cluster; panel.clusterNamespace = a.namespace || 'default'; panel.title = `K8s: ${cluster}`;
+            panel.clusterContext = cluster; panel.clusterNamespace = a.namespace || ''; panel.title = `K8s: ${contextLabel(cluster)}`;
             if (panel.active) current = { context: cluster, namespace: panel.clusterNamespace };
             result = await backend.list(cluster, a.namespace, a.kind); break;
           case 'detail': result = await backend.detail(cluster, a.namespace, a.kind, a.name); break;
@@ -100,6 +107,7 @@ function activate(context) {
   const guard = fn => (...args) => Promise.resolve().then(() => fn(...args)).catch(e => vscode.window.showErrorMessage(`Jaewon K8s: ${e.message}`));
   const command = (name, fn) => context.subscriptions.push(vscode.commands.registerCommand(`jaewonK8s.${name}`, guard(fn)));
   command('open', value => open(value)); command('openNew', value => open(value, true)); command('refresh', notify); command('health', health);
+  command('connect', async () => { const selected = await backend.connect(); notify(); if (selected) await open(selected); });
   const showSidebar = () => vscode.commands.executeCommand('workbench.view.extension.jaewonK8s');
   command('showSidebar', showSidebar);
   context.subscriptions.push(vscode.window.registerUriHandler({ handleUri: guard(uri => uri.path === '/sidebar' ? showSidebar() : uri.path === '/open' ? open() : undefined) }));
@@ -110,7 +118,8 @@ function activate(context) {
     if (typeof result === 'string') vscode.window.showInformationMessage(result.trim()); notify();
   });
   command('switchContext', async value => {
-    const selected = value?.contextName || await vscode.window.showQuickPick((await backend.contexts()).map(c => c.name), { title: 'Switch kubectl default context' });
+    const selected = value?.contextName || await vscode.window.showQuickPick((await backend.contexts()).filter(c => !backend.connections.profiles.some(p => p.id === c.name)).map(c => c.name), { title: 'Switch kubectl default context (local kubeconfig only)' });
+    if (backend.connections.profiles.some(p => p.id === selected)) { await open(selected); return; }
     if (selected) { await backend.run('', ['config', 'use-context', selected]); notify(); }
   });
   for (const action of ['Open', 'Start', 'Stop', 'Save', 'Forget']) command(`forward${action}`, item => forwards.action(item?.forwardId, action.toLowerCase()));

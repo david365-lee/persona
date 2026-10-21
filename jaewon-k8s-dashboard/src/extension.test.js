@@ -21,7 +21,7 @@ const vscode = {
 };
 Module._load = function(name, ...args) {
   if (name === 'vscode') return vscode;
-  if (name === './backend') return { Backend: class { config(key, value) { return value; } async contexts() { return [{ name: 'default', current: true }]; } } };
+  if (name === './backend') return { Backend: class { config(key, value) { return value; } async connect() { return 'remote-abc'; } async contexts() { return [{ name: 'default', current: true }]; } } };
   if (name === './forwards') return { Forwards: class { list() { return []; } } };
   if (name === './logs') return { Logs: class {} };
   if (name === './webview') return { html: () => '<html></html>' };
@@ -61,4 +61,13 @@ test('fresh panels advertise visibility and reuse an existing context tab', asyn
   assert.equal(created[0].messages[0].result.visible, true);
   await api.open('dev', true);
   assert.equal(created.length, 2);
+});
+
+test('connection selection updates panel settings before reinitialization without an obsolete refresh', async () => {
+  created = []; const api = activate(context()); await api.open('dev'); const p = created[0];
+  await p.listeners.receive({ id: 3, command: 'connect' });
+  assert.equal(p.clusterContext, 'remote-abc');
+  assert.ok(!p.messages.some(message => message.event === 'refresh'));
+  await p.listeners.receive({ id: 4, command: 'settings' });
+  assert.equal(p.messages.at(-1).result.initialContext, 'remote-abc');
 });

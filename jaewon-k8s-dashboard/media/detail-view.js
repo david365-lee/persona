@@ -32,5 +32,17 @@
     }
     return sections.length ? '<h3>Containers</h3>' + sections.join('') : '';
   }
-  return { containersHtml };
+  function storageClassSummary(resource) {
+    const annotations = resource.metadata?.annotations || {};
+    return { name: resource.metadata?.name || '', status: annotations['storageclass.kubernetes.io/is-default-class'] === 'true' || annotations['storageclass.beta.kubernetes.io/is-default-class'] === 'true' ? 'Yes' : 'No', provisioner: resource.provisioner || '-', reclaimPolicy: resource.reclaimPolicy || 'Delete', bindingMode: resource.volumeBindingMode || 'Immediate', expansion: resource.allowVolumeExpansion === true ? 'Allowed' : 'Disabled' };
+  }
+  function storageHtml(resource) {
+    if (resource.kind === 'StorageClass') {
+      const summary = storageClassSummary(resource);
+      return '<h3>StorageClass configuration</h3><dl>' + Object.entries(summary).filter(([key]) => key !== 'name').map(([key, value]) => `<dt>${escape(key)}</dt><dd>${escape(value)}</dd>`).join('') + '</dl><h3>Parameters / topology / mount options</h3><pre>' + escape(JSON.stringify({ parameters: resource.parameters || {}, allowedTopologies: resource.allowedTopologies || [], mountOptions: resource.mountOptions || [] }, null, 2)) + '</pre>';
+    }
+    if (['PersistentVolume', 'PersistentVolumeClaim'].includes(resource.kind)) return '<h3>Storage</h3><pre>' + escape(JSON.stringify({ storageClassName: resource.spec?.storageClassName ?? '(default)', capacity: resource.status?.capacity || resource.spec?.capacity, requested: resource.spec?.resources?.requests?.storage, accessModes: resource.spec?.accessModes, volumeName: resource.spec?.volumeName, claimRef: resource.spec?.claimRef, reclaimPolicy: resource.spec?.persistentVolumeReclaimPolicy, csi: resource.spec?.csi }, null, 2)) + '</pre>';
+    return '';
+  }
+  return { containersHtml, storageClassSummary, storageHtml };
 });

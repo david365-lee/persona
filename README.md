@@ -10,6 +10,13 @@ VS Code 안에서 Kubernetes 클러스터를 탐색하고 로그, Helm 릴리스
 
 [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=jaewon-lee.jaewon-k8s-dashboard) · [릴리스 및 VSIX 다운로드](https://github.com/david365-lee/persona/releases/latest) · [확장 프로그램 상세 안내](jaewon-k8s-dashboard/README.md)
 
+
+## 0.3.0: 로컬·원격 클러스터와 StorageClass
+
+**Connect Local / Remote**에서 로컬 kubeconfig 또는 원격 API 주소·Token/인증서·개인 키·CA로 연결합니다. **StorageClasses** 목록·상세·YAML 생성/편집·삭제·기본 클래스 변경과 **PersistentVolumes**, PVC 스토리지 상세를 추가했습니다.
+
+[연결 및 스토리지 사용 가이드](jaewon-k8s-dashboard/docs/remote-storage.md)
+
 ## 주요 기능
 
 ### 0.2.4 업데이트

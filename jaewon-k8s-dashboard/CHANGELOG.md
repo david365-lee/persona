@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0
+
+- Add Connect Local / Remote to the dashboard, sidebar and command palette.
+- Register remote HTTPS API endpoints using bearer tokens or PEM client certificates/private keys, with cluster CA or system trust verification.
+- Persist credentials in VS Code SecretStorage and use isolated, permission-restricted session kubeconfigs for kubectl, Helm, logs, shells and port forwards.
+- Add StorageClasses and PersistentVolumes navigation, storage policy columns and PV/PVC storage details.
+- Create and edit StorageClass YAML, delete classes, and set/unset the default class with confirmation and previous-default cleanup.
+- Keep cluster-scoped operations independent of the selected namespace, including edited YAML application.
+- Make the Node test runner work on Windows without shell glob expansion.
+
 ## 0.2.4
 
 - Fix broken Marketplace and VS Code details images caused by anonymous requests to a private GitHub repository.

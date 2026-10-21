@@ -2,7 +2,7 @@
   "name": "jaewon-k8s-dashboard",
   "displayName": "Jaewon K8s Dashboard",
   "description": "Kubernetes cluster explorer, merged live logs, Helm, metrics and persistent port forwards inside VS Code.",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "publisher": "jaewon-lee",
   "author": "jaewon",
   "repository": { "type": "git", "url": "https://github.com/david365-lee/persona.git", "directory": "jaewon-k8s-dashboard" },
@@ -16,6 +16,7 @@
   "capabilities": { "untrustedWorkspaces": { "supported": false } },
   "contributes": {
     "commands": [
+      { "command": "jaewonK8s.connect", "title": "Jaewon K8s: Connect Local / Remote Cluster", "icon": "$(plug)" },
       { "command": "jaewonK8s.showSidebar", "title": "Jaewon K8s: Show Sidebar", "icon": "$(layout-sidebar-left)" },
       { "command": "jaewonK8s.open", "title": "Jaewon K8s: Open Dashboard", "icon": "$(dashboard)" },
       { "command": "jaewonK8s.openNew", "title": "Jaewon K8s: Open Cluster in New Tab" },
@@ -41,6 +42,7 @@
     ],
     "menus": {
       "view/title": [
+        { "command": "jaewonK8s.connect", "when": "view == jaewonK8s.clusters", "group": "navigation" },
         { "command": "jaewonK8s.open", "when": "view == jaewonK8s.clusters", "group": "navigation" },
         { "command": "jaewonK8s.refresh", "when": "view == jaewonK8s.clusters || view == jaewonK8s.forwards", "group": "navigation" }
       ],
@@ -72,5 +74,5 @@
       }
     }
   },
-  "scripts": { "test": "node --test src/*.test.js", "package": "node scripts/package.cjs" }
+  "scripts": { "test": "node scripts/test.cjs", "package": "node scripts/package.cjs" }
 }

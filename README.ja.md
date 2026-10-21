@@ -10,6 +10,11 @@ VS Code 内で Kubernetes クラスターを探索し、ログ、Helm リリー�
 
 [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=jaewon-lee.jaewon-k8s-dashboard) · [リリース・VSIX ダウンロード](https://github.com/david365-lee/persona/releases/latest) · [拡張機能ガイド（韓国語）](jaewon-k8s-dashboard/README.md)
 
+
+## 0.3.0: リモートクラスタとストレージ
+
+**Connect Local / Remote** から既存の kubeconfig またはリモート HTTPS API を選択できます。トークンまたは PEM クライアント証明書・秘密鍵と CA に対応し、認証情報は VS Code SecretStorage に保存します。API へのネットワーク接続が必要です。SSH トンネルは自動作成しません。**StorageClasses** の詳細、YAML 作成・編集、削除、デフォルト設定、および **PersistentVolumes** と PVC のストレージ情報に対応しています。
+
 ## 主な機能
 
 ### 0.2.0 の改善点

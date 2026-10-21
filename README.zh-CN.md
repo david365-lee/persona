@@ -10,6 +10,11 @@
 
 [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=jaewon-lee.jaewon-k8s-dashboard) · [版本发布与 VSIX 下载](https://github.com/david365-lee/persona/releases/latest) · [扩展使用指南（韩语）](jaewon-k8s-dashboard/README.md)
 
+
+## 0.3.0：远程集群与存储
+
+通过 **Connect Local / Remote** 选择现有 kubeconfig，或配置远程 HTTPS API 地址、令牌或 PEM 客户端证书和私钥及 CA。凭据保存在 VS Code SecretStorage。需要能够访问 API 的网络；不会自动创建 SSH 隧道。**StorageClasses** 支持详情、YAML 创建与编辑、删除和默认类设置；**PersistentVolumes** 与 PVC 详情显示存储关联信息。
+
 ## 主要功能
 
 ### 0.2.0 改进

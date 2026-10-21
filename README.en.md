@@ -10,6 +10,11 @@ A VS Code extension for exploring Kubernetes clusters and managing logs, Helm re
 
 [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=jaewon-lee.jaewon-k8s-dashboard) · [Releases and VSIX downloads](https://github.com/david365-lee/persona/releases/latest) · [Extension guide (Korean)](jaewon-k8s-dashboard/README.md)
 
+
+## 0.3.0: Remote clusters and storage
+
+Use **Connect Local / Remote** for an existing kubeconfig or a remote HTTPS API endpoint with a bearer token or PEM client certificate/private key and CA. Credentials use VS Code SecretStorage. API network access is required; SSH tunnels are not created automatically. **StorageClasses** supports details, YAML creation/editing, deletion and default changes. **PersistentVolumes** and PVC storage details are also available.
+
 ## Features
 
 ### Improvements in 0.2.0

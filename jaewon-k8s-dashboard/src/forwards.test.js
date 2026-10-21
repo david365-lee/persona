@@ -26,3 +26,11 @@ test('stale stopped child cannot clobber replacement forward', () => {
   const entry = forwards.entries.get('id'); assert.equal(entry.process, children[1]); assert.equal(entry.status, 'running'); assert.equal(entry.localPort, 54321);
   forwards.dispose(); assert.equal(entry.wanted, false);
 });
+
+test('saved remote forwards wait for credential restoration before spawning', async () => {
+  let ready, spawned = 0;
+  const backend = { config: () => true, connections: { ready: new Promise(resolve => { ready = resolve; }) }, spawn: () => { spawned++; const child = new EventEmitter(); child.stdout = new EventEmitter(); child.stderr = new EventEmitter(); child.kill = () => {}; return child; } };
+  const forwards = new Forwards({ globalState: { get: () => [{ id: 'remote-forward', context: 'remote-a', autoStart: true } ] } }, backend);
+  assert.equal(spawned, 0); ready(); await backend.connections.ready; await new Promise(resolve => setImmediate(resolve));
+  assert.equal(spawned, 1); forwards.dispose();
+});
