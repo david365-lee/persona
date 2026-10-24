@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nexus
+  namespace: nexus
+spec:
+  template:
+    spec:
+      containers:
+        - name: nexus
+          env:
+            - name: INSTALL4J_ADD_VM_PARAMS
+              value: -Xms256m -Xmx768m -XX:MaxDirectMemorySize=512m -Djava.util.prefs.userRoot=/nexus-data/javaprefs
+          resources:
+            requests:
+              memory: 384Mi
+            limits:
+              memory: 2Gi

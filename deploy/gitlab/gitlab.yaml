@@ -36,8 +36,16 @@ data:
     gitlab_rails['gitlab_default_projects_features_container_registry'] = false
     registry['enable'] = false
     prometheus_monitoring['enable'] = false
-    puma['worker_processes'] = 2
-    sidekiq['concurrency'] = 10
+    # Memory-constrained profile for the 2Gi container limit:
+    # https://docs.gitlab.com/omnibus/settings/memory_constrained_envs/
+    puma['worker_processes'] = 0
+    sidekiq['concurrency'] = 5
+    gitlab_kas['enable'] = false
+    gitlab_rails['gitlab_kas_enabled'] = false
+    postgresql['shared_buffers'] = '128MB'
+    postgresql['max_connections'] = 100
+    gitlab_rails['env'] = { 'MALLOC_CONF' => 'dirty_decay_ms:1000,muzzy_decay_ms:1000' }
+    gitaly['env'] = { 'MALLOC_CONF' => 'dirty_decay_ms:1000,muzzy_decay_ms:1000', 'GITALY_COMMAND_SPAWN_MAX_PARALLEL' => '2' }
 ---
 apiVersion: v1
 kind: Service
@@ -114,10 +122,10 @@ spec:
           resources:
             requests:
               cpu: '2'
-              memory: 4Gi
+              memory: 2Gi
             limits:
               cpu: '4'
-              memory: 8Gi
+              memory: 4Gi
           startupProbe:
             exec:
               command: [curl, --fail, --silent, --max-time, '4', 'http://127.0.0.1/-/readiness']

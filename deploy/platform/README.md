@@ -14,10 +14,21 @@
 | Pritunl | 1.34.4763.45 | https://pritunl.clush.cloud/login | root |
 | 기존 GitLab | 19.5.1 | https://gitlab.clush.cloud | root |
 | Headlamp | 0.46.0 | https://headlamp.clush.cloud | 영구 토큰 로그인 |
+| LiteLLM Proxy | 1.106.3 | https://litellm.clush.cloud/ui, Swagger: https://llmapi.clush.cloud | root |
+| Velero / OTWLD Velero UI | 1.18.2 / 0.11.0 | https://velero.clush.cloud | root |
+| Grafana | 13.2.4 | https://grafana.clush.cloud | root |
+| Prometheus | 3.15.0 | https://prometheus.clush.cloud | Prometheus 자체 인증 없음 |
+| Langflow | 1.13.0 | https://langflow.clush.cloud | root |
+| Argo CD | 3.5.6 / chart 10.11.1 | https://argocd.clush.cloud | root |
+| Metrics Server | 0.8.0 / chart 3.13.0 | Kubernetes Metrics API (`kubectl top`) | 해당 없음 |
 
 Attu는 `/login`으로 접속한다. 인증 없는 `/` 요청은 upstream 애플리케이션에서 401 JSON을 반환한다. Attu의 앱 관리자 계정과 Milvus의 데이터베이스 계정은 서로 다르다. Milvus는 인증을 활성화했고 Attu에 내부 연결 주소와 root 자격 증명을 설정했다. DB 자체의 gRPC 포트를 인터넷에 공개하지 않았다.
 
 Headlamp 설치 및 영구 토큰 조회는 `../headlamp/README.md`를 참고한다. 현재 권한은 읽기 전용이며, 클러스터 전체 관리자 권한은 별도 사용자 승인 대기다.
+
+LiteLLM, Velero, Grafana/Prometheus, Langflow, Argo CD, Metrics Server의 설치 파일과 운영 세부 사항은 각각 `../litellm/README.md`, `../velero/README.md`, `../monitoring/README.md`, `../langflow/README.md`, `../argocd/README.md`, `../metrics-server/README.md`에 있다. 초기 비밀번호는 코드/Helm values에 저장하지 않고 Kubernetes Secret으로 관리한다.
+
+메모리 스케줄 요청은 GitLab 1.5Gi, LiteLLM 512Mi, Nexus 384Mi, Pritunl/MongoDB 각 128Mi, Langflow 384Mi로 낮췄다. 2026-10-25에 실사용량 기준으로 GitLab 컨테이너 제한을 2Gi로, Nexus JVM heap/direct memory와 제한을 추가로 낮췄다(위 섹션 참고). Langflow는 `--workers 1`과 지연 컴포넌트 로딩(`LANGFLOW_LAZY_LOAD_COMPONENTS`)을 적용해 실제 RSS를 줄였다.
 
 ## 트래픽 경로
 
@@ -50,7 +61,7 @@ UI에서 이후 암호를 변경하면 Secret의 저장값도 갱신해야 한�
 모두 단일 인스턴스이며 Docker Desktop의 Linux 로컬 디스크를 사용한다. `platform-local-retain` StorageClass는 `rancher.io/local-path`, `WaitForFirstConsumer`, `Retain`이다. 요청 용량은 실제 공간 예약이나 사용량 강제 제한을 뜻하지 않는다. Docker Desktop/클러스터 데이터 초기화에 대비한 외부 백업은 별도다.
 
 - Harbor: 레지스트리 100Gi, DB 10Gi, 작업 로그 5Gi, Redis 2Gi, Trivy DB 10Gi.
-- Nexus: 100Gi. JVM heap 1.5Gi, direct memory 1Gi, 컨테이너 메모리 최대 4Gi.
+- Nexus: 100Gi. 사용량이 적어 JVM heap 768Mi, direct memory 512Mi로 낮추고 컨테이너 메모리 요청 384Mi/제한 2Gi로 축소했다 (2026-10-25).
 - MinIO: 객체와 빌드된 실행 파일을 합쳐 100Gi PVC.
 - Milvus: 로컬 데이터 50Gi, etcd 10Gi. 객체/WAL은 별도 MinIO의 `milvus` 버킷을 사용한다. Pulsar/Kafka 대신 embedded Woodpecker를 사용한다.
 - Attu: 연결 정보/로그인/설정용 SQLite 2Gi.

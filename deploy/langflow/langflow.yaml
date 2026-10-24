@@ -1,0 +1,153 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: langflow
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: langflow-data
+  namespace: langflow
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: platform-local-retain
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: langflow
+  namespace: langflow
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: langflow
+  template:
+    metadata:
+      labels:
+        app: langflow
+    spec:
+      terminationGracePeriodSeconds: 60
+      automountServiceAccountToken: false
+      securityContext:
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: langflow
+          image: langflowai/langflow:1.13.0
+          imagePullPolicy: IfNotPresent
+          command: [langflow]
+          args: [run, --host, 0.0.0.0, --port, "7860", --workers, "1"]
+          ports:
+            - name: http
+              containerPort: 7860
+          env:
+            - name: LANGFLOW_AUTO_LOGIN
+              value: "false"
+            - name: LANGFLOW_PORT
+              value: "7860"
+            - name: LANGFLOW_SUPERUSER
+              value: root
+            - name: LANGFLOW_SUPERUSER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: langflow-auth
+                  key: password
+            - name: LANGFLOW_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: langflow-auth
+                  key: secret-key
+            - name: LANGFLOW_CUSTOM_COMPONENT_ADMIN_ONLY
+              value: "true"
+            - name: LANGFLOW_CONFIG_DIR
+              value: /app/data
+            - name: LANGFLOW_DATABASE_URL
+              value: sqlite:////app/data/langflow.db
+            - name: LANGFLOW_LAZY_LOAD_COMPONENTS
+              value: "true"
+            - name: MALLOC_ARENA_MAX
+              value: "2"
+          resources:
+            requests:
+              cpu: 300m
+              memory: 384Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 90
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: langflow-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: langflow
+  namespace: langflow
+spec:
+  type: ClusterIP
+  selector:
+    app: langflow
+  ports:
+    - name: http
+      port: 7860
+      targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: langflow
+  namespace: langflow
+  annotations:
+    nginx.org/client-max-body-size: "0"
+    nginx.org/proxy-read-timeout: 600s
+    nginx.org/proxy-send-timeout: 600s
+    nginx.org/proxy-set-headers: "X-Forwarded-Proto: https, X-Forwarded-Port: 443"
+    nginx.org/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: langflow.clush.cloud
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: langflow
+                port:
+                  number: 7860
