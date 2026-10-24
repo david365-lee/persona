@@ -1,0 +1,53 @@
+expose:
+  type: clusterIP
+  tls: {enabled: false}
+externalURL: https://harbor.clush.cloud
+existingSecretAdminPassword: platform-admin
+existingSecretAdminPasswordKey: password
+updateStrategy: {type: Recreate}
+persistence:
+  enabled: true
+  resourcePolicy: keep
+  persistentVolumeClaim:
+    registry: {storageClass: platform-local-retain, size: 100Gi}
+    jobservice:
+      jobLog: {storageClass: platform-local-retain, size: 5Gi}
+    database: {storageClass: platform-local-retain, size: 10Gi}
+    redis: {storageClass: platform-local-retain, size: 2Gi}
+    trivy: {storageClass: platform-local-retain, size: 10Gi}
+trivy:
+  enabled: true
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: '1', memory: 1Gi}
+portal:
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits: {cpu: '1', memory: 256Mi}
+core:
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: '2', memory: 768Mi}
+jobservice:
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {cpu: '1', memory: 512Mi}
+registry:
+  registry:
+    resources:
+      requests: {cpu: 100m, memory: 128Mi}
+      limits: {cpu: '1', memory: 512Mi}
+  controller:
+    resources:
+      requests: {cpu: 50m, memory: 64Mi}
+      limits: {cpu: '1', memory: 256Mi}
+database:
+  internal:
+    resources:
+      requests: {cpu: 100m, memory: 256Mi}
+      limits: {cpu: '1', memory: 768Mi}
+redis:
+  internal:
+    resources:
+      requests: {cpu: 50m, memory: 64Mi}
+      limits: {cpu: '1', memory: 256Mi}

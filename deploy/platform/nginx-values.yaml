@@ -1,0 +1,25 @@
+controller:
+  replicaCount: 1
+  enableCustomResources: false
+  ingressClass:
+    name: nginx
+    create: true
+    setAsDefaultIngress: true
+  resources:
+    requests: {cpu: 100m, memory: 128Mi}
+    limits: {cpu: '2', memory: 512Mi}
+  config:
+    entries:
+      client-max-body-size: '0'
+      proxy-read-timeout: '600s'
+      proxy-connect-timeout: '30s'
+      ssl-redirect: 'false'
+      redirect-to-https: 'false'
+  service:
+    type: LoadBalancer
+    externalTrafficPolicy: Cluster
+    httpPort: {enable: true, port: 80, targetPort: 80}
+    httpsPort: {enable: false}
+    customPorts:
+      - {name: origin-http, port: 81, targetPort: 80, protocol: TCP}
+      - {name: origin-444-http, port: 444, targetPort: 80, protocol: TCP}

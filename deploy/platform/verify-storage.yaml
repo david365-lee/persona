@@ -1,0 +1,55 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: platform-storage-check
+  namespace: milvus
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      containers:
+        - name: verify
+          image: python:3.12-slim
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: '2', memory: 1Gi}
+          env:
+            - name: S3_ACCESS_KEY
+              valueFrom: {secretKeyRef: {name: verification-s3, key: username}}
+            - name: S3_SECRET_KEY
+              valueFrom: {secretKeyRef: {name: verification-s3, key: password}}
+            - name: MILVUS_PASSWORD
+              valueFrom: {secretKeyRef: {name: milvus-admin, key: password}}
+          command: [bash, -ec]
+          args:
+            - |
+              pip install --quiet --no-cache-dir boto3 pymilvus
+              python - <<'PY'
+              import os, uuid, boto3
+              from pymilvus import MilvusClient
+              name = 'installation-check-' + uuid.uuid4().hex[:10]
+              s3 = boto3.client('s3', endpoint_url='http://minio.minio.svc.cluster.local:9000', aws_access_key_id=os.environ['S3_ACCESS_KEY'], aws_secret_access_key=os.environ['S3_SECRET_KEY'], region_name='us-east-1')
+              s3.create_bucket(Bucket=name)
+              try:
+                  s3.put_object(Bucket=name, Key='check.txt', Body=b'platform-storage-ok')
+                  assert s3.get_object(Bucket=name, Key='check.txt')['Body'].read() == b'platform-storage-ok'
+                  s3.delete_object(Bucket=name, Key='check.txt')
+                  print('MinIO: authenticated object write/read/delete OK', flush=True)
+              finally:
+                  s3.delete_bucket(Bucket=name)
+              client = MilvusClient(uri='http://milvus.milvus.svc.cluster.local:19530', user='root', password=os.environ['MILVUS_PASSWORD'])
+              collection = name.replace('-', '_')
+              client.create_collection(collection_name=collection, dimension=4)
+              try:
+                  client.insert(collection_name=collection, data=[{'id': 1, 'vector': [0.1,0.2,0.3,0.4]}])
+                  client.flush(collection_name=collection)
+                  result = client.query(collection_name=collection, filter='id == 1', output_fields=['id'], consistency_level='Strong')
+                  assert result and result[0]['id'] == 1, result
+                  print('Milvus: authenticated collection/insert/query OK', flush=True)
+              finally:
+                  client.drop_collection(collection_name=collection)
+                  client.close()
+              PY

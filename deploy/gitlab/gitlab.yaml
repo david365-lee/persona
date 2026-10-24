@@ -1,0 +1,157 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gitlab
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gitlab-local-retain
+provisioner: rancher.io/local-path
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gitlab-config
+  namespace: gitlab
+data:
+  gitlab.rb: |
+    external_url 'https://gitlab.clush.cloud'
+    letsencrypt['enable'] = false
+    nginx['listen_port'] = 80
+    nginx['listen_https'] = false
+    nginx['redirect_http_to_https'] = false
+    nginx['proxy_set_headers'] = {
+      'Host' => '$http_host',
+      'X-Real-IP' => '$remote_addr',
+      'X-Forwarded-For' => '$proxy_add_x_forwarded_for',
+      'X-Forwarded-Proto' => 'https',
+      'X-Forwarded-Ssl' => 'on'
+    }
+    gitlab_rails['time_zone'] = 'Asia/Seoul'
+    gitlab_rails['gitlab_shell_ssh_port'] = 2222
+    gitlab_rails['gitlab_shell_ssh_host'] = 'david365.ddns.net'
+    gitlab_rails['gitlab_default_projects_features_container_registry'] = false
+    registry['enable'] = false
+    prometheus_monitoring['enable'] = false
+    puma['worker_processes'] = 2
+    sidekiq['concurrency'] = 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitlab-headless
+  namespace: gitlab
+spec:
+  clusterIP: None
+  selector:
+    app: gitlab
+  ports:
+    - name: http
+      port: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitlab
+  namespace: gitlab
+spec:
+  type: ClusterIP
+  selector:
+    app: gitlab
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitlab-ssh
+  namespace: gitlab
+spec:
+  type: LoadBalancer
+  selector:
+    app: gitlab
+  ports:
+    - name: ssh
+      port: 2222
+      targetPort: ssh
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: gitlab
+  namespace: gitlab
+spec:
+  serviceName: gitlab-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gitlab
+  template:
+    metadata:
+      labels:
+        app: gitlab
+    spec:
+      terminationGracePeriodSeconds: 180
+      containers:
+        - name: gitlab
+          image: gitlab/gitlab-ce:19.5.1-ce.0@sha256:939572df24c6517d0408d7355cafef3f7c6defa9d248201151a88361fc411242
+          env:
+            - name: GITLAB_OMNIBUS_CONFIG
+              valueFrom:
+                configMapKeyRef:
+                  name: gitlab-config
+                  key: gitlab.rb
+          ports:
+            - name: http
+              containerPort: 80
+            - name: ssh
+              containerPort: 22
+          resources:
+            requests:
+              cpu: '2'
+              memory: 4Gi
+            limits:
+              cpu: '4'
+              memory: 8Gi
+          startupProbe:
+            exec:
+              command: [curl, --fail, --silent, --max-time, '4', 'http://127.0.0.1/-/readiness']
+            periodSeconds: 10
+            failureThreshold: 180
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command: [curl, --fail, --silent, --max-time, '4', 'http://127.0.0.1/-/readiness']
+            periodSeconds: 10
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: storage
+              mountPath: /etc/gitlab
+              subPath: config
+            - name: storage
+              mountPath: /var/log/gitlab
+              subPath: logs
+            - name: storage
+              mountPath: /var/opt/gitlab
+              subPath: data
+            - name: shm
+              mountPath: /dev/shm
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 256Mi
+  volumeClaimTemplates:
+    - metadata:
+        name: storage
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: gitlab-local-retain
+        resources:
+          requests:
+            storage: 50Gi

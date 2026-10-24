@@ -1,0 +1,204 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pritunl
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pritunl-data
+  namespace: pritunl
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: rook-cephfs
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pritunl
+  namespace: pritunl
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: pritunl
+  template:
+    metadata:
+      labels:
+        app: pritunl
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: mongodb
+          image: mongo:8.0@sha256:4a4ab5d4834207389e0d7270fac988e21ffedccecba77991a552f755df229907
+          args: [--bind_ip, '127.0.0.1']
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - name: data
+              mountPath: /data/db
+              subPath: mongodb
+          readinessProbe:
+            exec:
+              command: [mongosh, 'mongodb://127.0.0.1:27017/admin', --quiet, --eval, 'db.adminCommand({ping:1})']
+            periodSeconds: 15
+            timeoutSeconds: 5
+        - name: pritunl
+          image: ghcr.io/jippi/docker-pritunl:latest-minimal@sha256:228b8bc1b513e1ad87f81b168f0374c75b57582e92f55fdadd75299c83b78545
+          env:
+            - name: PRITUNL_MONGODB_URI
+              value: mongodb://127.0.0.1:27017/pritunl
+          securityContext:
+            privileged: true
+          ports:
+            - name: https
+              containerPort: 443
+            - name: openvpn
+              containerPort: 1194
+              protocol: UDP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/pritunl
+              subPath: pritunl
+          startupProbe:
+            tcpSocket:
+              port: https
+            periodSeconds: 5
+            failureThreshold: 120
+          readinessProbe:
+            httpGet:
+              path: /
+              port: https
+              scheme: HTTPS
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: https
+            periodSeconds: 20
+            failureThreshold: 6
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: pritunl-data
+---
+apiVersion: traefik.io/v1alpha1
+kind: ServersTransport
+metadata:
+  name: pritunl-backend
+  namespace: pritunl
+spec:
+  insecureSkipVerify: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pritunl
+  namespace: pritunl
+  annotations:
+    traefik.ingress.kubernetes.io/service.serversscheme: https
+    traefik.ingress.kubernetes.io/service.serverstransport: pritunl-pritunl-backend@kubernetescrd
+spec:
+  selector:
+    app: pritunl
+  ports:
+    - name: https
+      port: 443
+      targetPort: https
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pritunl-vpn
+  namespace: pritunl
+spec:
+  type: NodePort
+  selector:
+    app: pritunl
+  ports:
+    - name: openvpn
+      protocol: UDP
+      port: 1194
+      targetPort: openvpn
+      nodePort: 31194
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: origin-selfsigned
+  namespace: pritunl
+spec:
+  selfSigned: {}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pritunl
+  namespace: pritunl
+  annotations:
+    cert-manager.io/issuer: origin-selfsigned
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [pritunl.pc.david365.shop]
+      secretName: pritunl-tls
+  rules:
+    - host: pritunl.pc.david365.shop
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: pritunl
+                port:
+                  name: https
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: cloudflare-flexible
+  namespace: pritunl
+spec:
+  headers:
+    customRequestHeaders:
+      X-Forwarded-Proto: https
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pritunl-http
+  namespace: pritunl
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+    traefik.ingress.kubernetes.io/router.middlewares: pritunl-cloudflare-flexible@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: pritunl.pc.david365.shop
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: pritunl
+                port:
+                  name: https

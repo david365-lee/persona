@@ -1,0 +1,23 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "K9s: Windows console compatibility",
+      "type": "process",
+      "command": "k9s.exe",
+      "args": ["--context", "docker-desktop"],
+      "options": {
+        "env": {
+          "TCELL_TRUECOLOR": "disable"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "clear": true
+      },
+      "problemMatcher": []
+    }
+  ]
+}

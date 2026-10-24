@@ -3,6 +3,10 @@
 node_modules/
 *.vsix
 
+# Local temporary artifacts and nested repositories
+/.tmp-*
+/jaewon-k9s/
+
 # Logs
 *.log
 
@@ -21,6 +25,13 @@ service-account*.json
 *.key
 *.p12
 *.pfx
+/.kube/
+/kubeconfig
+*.kubeconfig
 
 # Local agent settings
 .codex/
+/AGENTS.md
+
+# Privileged proposal; keep local until explicitly approved
+/deploy/headlamp/cluster-admin.proposed.yaml.txt

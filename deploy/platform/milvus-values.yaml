@@ -1,0 +1,43 @@
+cluster: {enabled: false}
+image:
+  all: {repository: milvusdb/milvus, tag: v3.0.4}
+standalone:
+  messageQueue: woodpecker
+  resources:
+    requests: {cpu: '1', memory: 2Gi}
+    limits: {cpu: '4', memory: 4Gi}
+  persistence:
+    enabled: true
+    persistentVolumeClaim: {storageClass: platform-local-retain, size: 50Gi}
+streaming:
+  enabled: true
+  woodpecker:
+    embedded: true
+    storage: {type: minio}
+woodpecker: {enabled: false}
+pulsar: {enabled: false}
+pulsarv3: {enabled: false}
+kafka: {enabled: false}
+minio: {enabled: false}
+externalS3:
+  enabled: true
+  host: minio.minio.svc.cluster.local
+  port: 9000
+  useSSL: false
+  bucketName: milvus
+  rootPath: milvus
+etcd:
+  enabled: true
+  replicaCount: 1
+  persistence: {enabled: true, storageClass: platform-local-retain, size: 10Gi}
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: '1', memory: 768Mi}
+extraConfigFiles:
+  user.yaml: |
+    common:
+      security:
+        authorizationEnabled: true
+    proxy:
+      http:
+        enabled: true

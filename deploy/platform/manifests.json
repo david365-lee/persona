@@ -1,0 +1,1074 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Namespace",
+      "metadata": {
+        "name": "minio"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Namespace",
+      "metadata": {
+        "name": "nexus"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Namespace",
+      "metadata": {
+        "name": "milvus"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Namespace",
+      "metadata": {
+        "name": "pritunl"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Namespace",
+      "metadata": {
+        "name": "harbor"
+      }
+    },
+    {
+      "apiVersion": "storage.k8s.io/v1",
+      "kind": "StorageClass",
+      "metadata": {
+        "name": "platform-local-retain"
+      },
+      "provisioner": "rancher.io/local-path",
+      "reclaimPolicy": "Retain",
+      "volumeBindingMode": "WaitForFirstConsumer"
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "name": "minio-data",
+        "namespace": "minio"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "storageClassName": "platform-local-retain",
+        "resources": {
+          "requests": {
+            "storage": "100Gi"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "minio",
+        "namespace": "minio"
+      },
+      "spec": {
+        "replicas": 1,
+        "strategy": {
+          "type": "Recreate"
+        },
+        "selector": {
+          "matchLabels": {
+            "app": "minio"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "minio"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "terminationGracePeriodSeconds": 120,
+            "containers": [
+              {
+                "name": "minio",
+                "image": "debian:bookworm-slim",
+                "command": [
+                  "/build/minio"
+                ],
+                "args": [
+                  "server",
+                  "/data",
+                  "--address",
+                  ":9000",
+                  "--console-address",
+                  ":9001"
+                ],
+                "env": [
+                  {
+                    "name": "MINIO_ROOT_USER",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "minio-admin",
+                        "key": "username"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MINIO_ROOT_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "minio-admin",
+                        "key": "password"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MINIO_BROWSER_REDIRECT_URL",
+                    "value": "https://minio.clush.cloud"
+                  },
+                  {
+                    "name": "SSL_CERT_FILE",
+                    "value": "/build/ca-certificates.crt"
+                  }
+                ],
+                "ports": [
+                  {
+                    "name": "s3",
+                    "containerPort": 9000
+                  },
+                  {
+                    "name": "console",
+                    "containerPort": 9001
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "256Mi"
+                  },
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "1Gi"
+                  }
+                },
+                "startupProbe": {
+                  "httpGet": {
+                    "path": "/minio/health/ready",
+                    "port": 9000
+                  },
+                  "periodSeconds": 10,
+                  "failureThreshold": 90,
+                  "timeoutSeconds": 5
+                },
+                "readinessProbe": {
+                  "httpGet": {
+                    "path": "/minio/health/ready",
+                    "port": 9000
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 5
+                },
+                "volumeMounts": [
+                  {
+                    "name": "storage",
+                    "mountPath": "/data",
+                    "subPath": "data"
+                  },
+                  {
+                    "name": "storage",
+                    "mountPath": "/build",
+                    "subPath": "bin",
+                    "readOnly": true
+                  }
+                ]
+              }
+            ],
+            "volumes": [
+              {
+                "name": "storage",
+                "persistentVolumeClaim": {
+                  "claimName": "minio-data"
+                }
+              }
+            ],
+            "initContainers": [
+              {
+                "name": "build-minio",
+                "image": "golang:1.26-bookworm",
+                "command": [
+                  "bash",
+                  "-ec"
+                ],
+                "args": [
+                  "set -o pipefail\nif [ ! -x /build/minio ] || [ \"$(cat /build/source-ref 2>/dev/null || true)\" != \"7aac2a2c5b7c882e68c1ce017d8256be2feea27f\" ]; then\n  mkdir -p /tmp/source\n  curl -fsSL https://codeload.github.com/minio/minio/tar.gz/7aac2a2c5b7c882e68c1ce017d8256be2feea27f | tar -xz --strip-components=1 -C /tmp/source\n  cd /tmp/source\n  CGO_ENABLED=0 GOMAXPROCS=2 go build -p 2 -trimpath -ldflags \"$(go run buildscripts/gen-ldflags.go)\" -o /build/minio .\n  echo 7aac2a2c5b7c882e68c1ce017d8256be2feea27f > /build/source-ref\nfi\ncp /etc/ssl/certs/ca-certificates.crt /build/ca-certificates.crt"
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "500m",
+                    "memory": "512Mi"
+                  },
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "3Gi"
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "storage",
+                    "mountPath": "/build",
+                    "subPath": "bin"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "minio",
+        "namespace": "minio"
+      },
+      "spec": {
+        "type": "ClusterIP",
+        "selector": {
+          "app": "minio"
+        },
+        "ports": [
+          {
+            "name": "s3",
+            "port": 9000,
+            "targetPort": 9000
+          },
+          {
+            "name": "console",
+            "port": 9001,
+            "targetPort": 9001
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "Ingress",
+      "metadata": {
+        "name": "minio",
+        "namespace": "minio",
+        "annotations": {
+          "nginx.org/client-max-body-size": "0",
+          "nginx.org/proxy-read-timeout": "600s",
+          "nginx.org/proxy-send-timeout": "600s",
+          "nginx.org/proxy-set-headers": "X-Forwarded-Proto: https, X-Forwarded-Port: 443",
+          "nginx.org/ssl-redirect": "false",
+          "nginx.org/websocket-services": "minio",
+          "nginx.org/proxy-buffering": "false"
+        }
+      },
+      "spec": {
+        "ingressClassName": "nginx",
+        "rules": [
+          {
+            "host": "minio.clush.cloud",
+            "http": {
+              "paths": [
+                {
+                  "path": "/",
+                  "pathType": "Prefix",
+                  "backend": {
+                    "service": {
+                      "name": "minio",
+                      "port": {
+                        "number": 9001
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "Ingress",
+      "metadata": {
+        "name": "minio-s3",
+        "namespace": "minio",
+        "annotations": {
+          "nginx.org/client-max-body-size": "0",
+          "nginx.org/proxy-buffering": "false",
+          "nginx.org/proxy-read-timeout": "600s",
+          "nginx.org/proxy-set-headers": "X-Forwarded-Proto: https, X-Forwarded-Port: 443"
+        }
+      },
+      "spec": {
+        "ingressClassName": "nginx",
+        "rules": [
+          {
+            "host": "s3.clush.cloud",
+            "http": {
+              "paths": [
+                {
+                  "path": "/",
+                  "pathType": "Prefix",
+                  "backend": {
+                    "service": {
+                      "name": "minio",
+                      "port": {
+                        "number": 9000
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "name": "nexus-data",
+        "namespace": "nexus"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "storageClassName": "platform-local-retain",
+        "resources": {
+          "requests": {
+            "storage": "100Gi"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "nexus",
+        "namespace": "nexus"
+      },
+      "spec": {
+        "replicas": 1,
+        "strategy": {
+          "type": "Recreate"
+        },
+        "selector": {
+          "matchLabels": {
+            "app": "nexus"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "nexus"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "terminationGracePeriodSeconds": 120,
+            "containers": [
+              {
+                "name": "nexus",
+                "image": "sonatype/nexus3@sha256:0477ceb3b9c4c46d6a3f21a1f878a11f1ea9d2cdfdb3b3b8336a8a3df5c463d5",
+                "env": [
+                  {
+                    "name": "INSTALL4J_ADD_VM_PARAMS",
+                    "value": "-Xms1024m -Xmx1536m -XX:MaxDirectMemorySize=1024m -Djava.util.prefs.userRoot=/nexus-data/javaprefs"
+                  }
+                ],
+                "ports": [
+                  {
+                    "name": "http",
+                    "containerPort": 8081
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "500m",
+                    "memory": "2Gi"
+                  },
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "4Gi"
+                  }
+                },
+                "startupProbe": {
+                  "httpGet": {
+                    "path": "/service/rest/v1/status",
+                    "port": 8081
+                  },
+                  "periodSeconds": 10,
+                  "failureThreshold": 90,
+                  "timeoutSeconds": 5
+                },
+                "readinessProbe": {
+                  "httpGet": {
+                    "path": "/service/rest/v1/status",
+                    "port": 8081
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 5
+                },
+                "volumeMounts": [
+                  {
+                    "name": "storage",
+                    "mountPath": "/nexus-data"
+                  }
+                ]
+              }
+            ],
+            "volumes": [
+              {
+                "name": "storage",
+                "persistentVolumeClaim": {
+                  "claimName": "nexus-data"
+                }
+              }
+            ],
+            "securityContext": {
+              "fsGroup": 200
+            }
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "nexus",
+        "namespace": "nexus"
+      },
+      "spec": {
+        "type": "ClusterIP",
+        "selector": {
+          "app": "nexus"
+        },
+        "ports": [
+          {
+            "name": "http",
+            "port": 8081,
+            "targetPort": 8081
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "Ingress",
+      "metadata": {
+        "name": "nexus",
+        "namespace": "nexus",
+        "annotations": {
+          "nginx.org/client-max-body-size": "0",
+          "nginx.org/proxy-read-timeout": "600s",
+          "nginx.org/proxy-send-timeout": "600s",
+          "nginx.org/proxy-set-headers": "X-Forwarded-Proto: https, X-Forwarded-Port: 443",
+          "nginx.org/ssl-redirect": "false"
+        }
+      },
+      "spec": {
+        "ingressClassName": "nginx",
+        "rules": [
+          {
+            "host": "nexus.clush.cloud",
+            "http": {
+              "paths": [
+                {
+                  "path": "/",
+                  "pathType": "Prefix",
+                  "backend": {
+                    "service": {
+                      "name": "nexus",
+                      "port": {
+                        "number": 8081
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "name": "attu-data",
+        "namespace": "milvus"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "storageClassName": "platform-local-retain",
+        "resources": {
+          "requests": {
+            "storage": "2Gi"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "attu",
+        "namespace": "milvus"
+      },
+      "spec": {
+        "replicas": 1,
+        "strategy": {
+          "type": "Recreate"
+        },
+        "selector": {
+          "matchLabels": {
+            "app": "attu"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "attu"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "terminationGracePeriodSeconds": 120,
+            "containers": [
+              {
+                "name": "attu",
+                "image": "zilliz/attu:v3.0.1@sha256:19e8ae3b1c0a50f880209be07959cd8d3b57456abf220252a35fcefc40a9cd4b",
+                "env": [
+                  {
+                    "name": "MILVUS_ADDRESS",
+                    "value": "milvus.milvus.svc.cluster.local:19530"
+                  },
+                  {
+                    "name": "MILVUS_USERNAME",
+                    "value": "root"
+                  },
+                  {
+                    "name": "MILVUS_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "milvus-admin",
+                        "key": "password"
+                      }
+                    }
+                  },
+                  {
+                    "name": "ATTU_ADMIN_USER",
+                    "value": "root"
+                  },
+                  {
+                    "name": "ATTU_ADMIN_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "attu-admin",
+                        "key": "password"
+                      }
+                    }
+                  },
+                  {
+                    "name": "ATTU_AUTH_MODE",
+                    "value": "local"
+                  },
+                  {
+                    "name": "ATTU_AUTH_COOKIE_SECURE",
+                    "value": "true"
+                  }
+                ],
+                "ports": [
+                  {
+                    "name": "http",
+                    "containerPort": 3000
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "256Mi"
+                  },
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "768Mi"
+                  }
+                },
+                "startupProbe": {
+                  "httpGet": {
+                    "path": "/login",
+                    "port": 3000
+                  },
+                  "periodSeconds": 10,
+                  "failureThreshold": 90,
+                  "timeoutSeconds": 5
+                },
+                "readinessProbe": {
+                  "httpGet": {
+                    "path": "/login",
+                    "port": 3000
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 5
+                },
+                "volumeMounts": [
+                  {
+                    "name": "storage",
+                    "mountPath": "/data"
+                  }
+                ]
+              }
+            ],
+            "volumes": [
+              {
+                "name": "storage",
+                "persistentVolumeClaim": {
+                  "claimName": "attu-data"
+                }
+              }
+            ],
+            "securityContext": {
+              "fsGroup": 1000
+            }
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "attu",
+        "namespace": "milvus"
+      },
+      "spec": {
+        "type": "ClusterIP",
+        "selector": {
+          "app": "attu"
+        },
+        "ports": [
+          {
+            "name": "http",
+            "port": 3000,
+            "targetPort": 3000
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "Ingress",
+      "metadata": {
+        "name": "attu",
+        "namespace": "milvus",
+        "annotations": {
+          "nginx.org/client-max-body-size": "0",
+          "nginx.org/proxy-read-timeout": "600s",
+          "nginx.org/proxy-send-timeout": "600s",
+          "nginx.org/proxy-set-headers": "X-Forwarded-Proto: https, X-Forwarded-Port: 443",
+          "nginx.org/ssl-redirect": "false",
+          "nginx.org/websocket-services": "attu"
+        }
+      },
+      "spec": {
+        "ingressClassName": "nginx",
+        "rules": [
+          {
+            "host": "attu.clush.cloud",
+            "http": {
+              "paths": [
+                {
+                  "path": "/",
+                  "pathType": "Prefix",
+                  "backend": {
+                    "service": {
+                      "name": "attu",
+                      "port": {
+                        "number": 3000
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "name": "pritunl-data",
+        "namespace": "pritunl"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "storageClassName": "platform-local-retain",
+        "resources": {
+          "requests": {
+            "storage": "10Gi"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "pritunl",
+        "namespace": "pritunl"
+      },
+      "spec": {
+        "replicas": 1,
+        "strategy": {
+          "type": "Recreate"
+        },
+        "selector": {
+          "matchLabels": {
+            "app": "pritunl"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "pritunl"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "terminationGracePeriodSeconds": 120,
+            "containers": [
+              {
+                "name": "mongodb",
+                "image": "mongo:8.0",
+                "args": [
+                  "--bind_ip",
+                  "127.0.0.1",
+                  "--wiredTigerCacheSizeGB",
+                  "0.25"
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "256Mi"
+                  },
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "768Mi"
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "storage",
+                    "mountPath": "/data/db",
+                    "subPath": "mongodb"
+                  }
+                ]
+              },
+              {
+                "name": "pritunl",
+                "image": "ghcr.io/jippi/docker-pritunl:latest-minimal@sha256:f588e4fb3d5e335f5d5a03699188ed6ebdca1cdf0ab182a9a880c67d3a24d3c0",
+                "env": [
+                  {
+                    "name": "PRITUNL_MONGODB_URI",
+                    "value": "mongodb://127.0.0.1:27017/pritunl"
+                  }
+                ],
+                "securityContext": {
+                  "privileged": true
+                },
+                "ports": [
+                  {
+                    "name": "https",
+                    "containerPort": 443
+                  },
+                  {
+                    "name": "vpn",
+                    "containerPort": 1194,
+                    "protocol": "UDP"
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "256Mi"
+                  },
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "1Gi"
+                  }
+                },
+                "startupProbe": {
+                  "tcpSocket": {
+                    "port": 443
+                  },
+                  "periodSeconds": 10,
+                  "failureThreshold": 60
+                },
+                "readinessProbe": {
+                  "httpGet": {
+                    "path": "/",
+                    "port": 443,
+                    "scheme": "HTTPS"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 5
+                },
+                "volumeMounts": [
+                  {
+                    "name": "storage",
+                    "mountPath": "/var/lib/pritunl",
+                    "subPath": "pritunl"
+                  },
+                  {
+                    "name": "tun",
+                    "mountPath": "/dev/net/tun"
+                  },
+                  {
+                    "name": "storage",
+                    "mountPath": "/packages",
+                    "subPath": "packages",
+                    "readOnly": true
+                  }
+                ],
+                "command": [
+                  "bash",
+                  "-ec"
+                ],
+                "args": [
+                  "dpkg -i '/packages/pritunl_1.34.4763.45-0ubuntu1~focal_amd64.deb'; exec /bin/start-pritunl"
+                ]
+              }
+            ],
+            "volumes": [
+              {
+                "name": "storage",
+                "persistentVolumeClaim": {
+                  "claimName": "pritunl-data"
+                }
+              },
+              {
+                "name": "tun",
+                "hostPath": {
+                  "path": "/dev/net/tun",
+                  "type": "CharDevice"
+                }
+              }
+            ],
+            "initContainers": [
+              {
+                "name": "fetch-current-pritunl",
+                "image": "ghcr.io/jippi/docker-pritunl:latest-minimal@sha256:f588e4fb3d5e335f5d5a03699188ed6ebdca1cdf0ab182a9a880c67d3a24d3c0",
+                "command": [
+                  "bash",
+                  "-ec"
+                ],
+                "args": [
+                  "cd /packages\nif [ ! -f 'pritunl_1.34.4763.45-0ubuntu1~focal_amd64.deb' ]; then\n  apt-get update -qq\n  apt-get download 'pritunl=1.34.4763.45-0ubuntu1~focal'\nfi\necho 'e36d8f5d68681ef6c677380eeeac5439ebec64bd7eb888de219537456433c929  pritunl_1.34.4763.45-0ubuntu1~focal_amd64.deb' | sha256sum -c -"
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "128Mi"
+                  },
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "512Mi"
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "storage",
+                    "mountPath": "/packages",
+                    "subPath": "packages"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "pritunl",
+        "namespace": "pritunl"
+      },
+      "spec": {
+        "type": "ClusterIP",
+        "selector": {
+          "app": "pritunl"
+        },
+        "ports": [
+          {
+            "name": "https",
+            "port": 443,
+            "targetPort": 443
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "pritunl-vpn",
+        "namespace": "pritunl"
+      },
+      "spec": {
+        "type": "LoadBalancer",
+        "selector": {
+          "app": "pritunl"
+        },
+        "ports": [
+          {
+            "name": "openvpn",
+            "port": 1194,
+            "targetPort": 1194,
+            "protocol": "UDP"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "Ingress",
+      "metadata": {
+        "name": "pritunl",
+        "namespace": "pritunl",
+        "annotations": {
+          "nginx.org/client-max-body-size": "0",
+          "nginx.org/proxy-read-timeout": "600s",
+          "nginx.org/proxy-send-timeout": "600s",
+          "nginx.org/proxy-set-headers": "X-Forwarded-Proto: https, X-Forwarded-Port: 443",
+          "nginx.org/ssl-redirect": "false",
+          "nginx.org/ssl-services": "pritunl"
+        }
+      },
+      "spec": {
+        "ingressClassName": "nginx",
+        "rules": [
+          {
+            "host": "pritunl.clush.cloud",
+            "http": {
+              "paths": [
+                {
+                  "path": "/",
+                  "pathType": "Prefix",
+                  "backend": {
+                    "service": {
+                      "name": "pritunl",
+                      "port": {
+                        "number": 443
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "Ingress",
+      "metadata": {
+        "name": "harbor",
+        "namespace": "harbor",
+        "annotations": {
+          "nginx.org/client-max-body-size": "0",
+          "nginx.org/proxy-read-timeout": "600s",
+          "nginx.org/proxy-send-timeout": "600s",
+          "nginx.org/proxy-set-headers": "X-Forwarded-Proto: https, X-Forwarded-Port: 443",
+          "nginx.org/ssl-redirect": "false"
+        }
+      },
+      "spec": {
+        "ingressClassName": "nginx",
+        "rules": [
+          {
+            "host": "harbor.clush.cloud",
+            "http": {
+              "paths": [
+                {
+                  "path": "/",
+                  "pathType": "Prefix",
+                  "backend": {
+                    "service": {
+                      "name": "harbor",
+                      "port": {
+                        "number": 80
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "Ingress",
+      "metadata": {
+        "name": "gitlab",
+        "namespace": "gitlab",
+        "annotations": {
+          "nginx.org/client-max-body-size": "0",
+          "nginx.org/proxy-read-timeout": "600s",
+          "nginx.org/proxy-send-timeout": "600s",
+          "nginx.org/proxy-set-headers": "X-Forwarded-Proto: https, X-Forwarded-Port: 443",
+          "nginx.org/ssl-redirect": "false",
+          "nginx.org/websocket-services": "gitlab"
+        }
+      },
+      "spec": {
+        "ingressClassName": "nginx",
+        "rules": [
+          {
+            "host": "gitlab.clush.cloud",
+            "http": {
+              "paths": [
+                {
+                  "path": "/",
+                  "pathType": "Prefix",
+                  "backend": {
+                    "service": {
+                      "name": "gitlab",
+                      "port": {
+                        "number": 80
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
