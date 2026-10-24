@@ -21,6 +21,11 @@ kubectl --context local-rke2 -n pritunl rollout status deployment/pritunl
 kubectl --context local-rke2 -n pritunl get pods,pvc,ingress,certificate
 ```
 
+현재 `docker-desktop`에서 Pritunl/MongoDB의 메모리 요청을 각각 128Mi로
+낮춘 패치는 `resources-patch.yaml`에 있다. 적용 시 Deployment가 재시작된다.
+메모리 제한은 기존 값을 유지해 실제 사용량보다 낮은 상한으로 인한 OOM을
+피한다.
+
 Traefik 프록시 설정은 DB에 저장됩니다. 새 DB로 설치할 때는 실행합니다.
 
 ```powershell

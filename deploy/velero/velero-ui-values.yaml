@@ -1,0 +1,55 @@
+replicaCount: 1
+
+configuration:
+  general:
+    secretPassPhrase:
+      existingSecret: velero-ui-auth
+      key: pass_phrase
+    veleroNamespace: velero
+
+serviceAccount:
+  create: true
+  automount: true
+
+rbac:
+  create: true
+  clusterAdministrator: false
+
+service:
+  type: ClusterIP
+  port: 3000
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.org/client-max-body-size: "0"
+    nginx.org/proxy-read-timeout: 600s
+    nginx.org/proxy-send-timeout: 600s
+    nginx.org/proxy-set-headers: "X-Forwarded-Proto: https, X-Forwarded-Port: 443"
+    nginx.org/ssl-redirect: "false"
+  hosts:
+    - host: velero.clush.cloud
+      paths:
+        - path: /
+          pathType: Prefix
+
+env:
+  - name: BASIC_AUTH_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: velero-ui-auth
+        key: username
+  - name: BASIC_AUTH_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: velero-ui-auth
+        key: password
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

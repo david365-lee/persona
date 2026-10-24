@@ -48,6 +48,10 @@ spec:
           ports:
             - name: http
               containerPort: 7860
+          envFrom:
+            - secretRef:
+                name: support-assistant-link
+                optional: true
           env:
             - name: LANGFLOW_AUTO_LOGIN
               value: "false"

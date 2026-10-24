@@ -1,0 +1,17 @@
+{
+  "refund": {
+    "keywords": ["refund", "return", "환불", "반품"],
+    "policy": "상품 수령 후 7일 이내에 미사용 상품의 환불을 신청할 수 있습니다. 주문번호를 준비해 고객센터에 접수하세요. 반품 배송비는 단순 변심이면 고객 부담입니다.",
+    "source": "policy/refund-v1"
+  },
+  "shipping": {
+    "keywords": ["shipping", "delivery", "배송", "택배"],
+    "policy": "결제 완료 후 영업일 기준 2~3일 이내에 배송됩니다. 배송 조회는 주문 내역의 운송장 번호로 가능합니다.",
+    "source": "policy/shipping-v1"
+  },
+  "account": {
+    "keywords": ["password", "login", "비밀번호", "로그인"],
+    "policy": "로그인 화면의 비밀번호 재설정을 선택하세요. 가입 이메일로 재설정 링크가 전송됩니다. 비밀번호나 인증번호를 상담원에게 알려주지 마세요.",
+    "source": "policy/account-v1"
+  }
+}

@@ -1,0 +1,86 @@
+stages: [test, build, evaluate, promote, verify]
+
+workflow:
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /^chore\(deploy\):/'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
+default:
+  tags: [llmops]
+  interruptible: true
+
+variables:
+  IMAGE_REPOSITORY: harbor.clush.cloud/llmops/support-assistant
+  LLM_MODEL: gemini-3.5-flash-lite
+  LITELLM_BASE_URL: http://litellm.litellm.svc.cluster.local:4000/v1
+  GITLAB_INTERNAL_API_URL: http://gitlab.gitlab.svc.cluster.local/api/v4
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  FF_USE_ADVANCED_POD_SPEC_CONFIGURATION: "true"
+
+unit-tests:
+  stage: test
+  image: python:3.12-slim
+  script:
+    - pip install -r requirements-dev.txt
+    - python -m pytest tests -q --junitxml=reports/unit.xml
+  artifacts:
+    when: always
+    reports:
+      junit: reports/unit.xml
+    paths: [reports/]
+
+build-image:
+  stage: build
+  image:
+    name: moby/buildkit:v0.26.3-rootless
+    entrypoint: [""]
+  variables:
+    BUILDKITD_FLAGS: --oci-worker-no-process-sandbox --oci-worker-snapshotter=native
+  script:
+    - mkdir -p ~/.docker
+    - printf '{"auths":{"harbor.clush.cloud":{"username":"%s","password":"%s"}}}' "$HARBOR_PUSH_USERNAME" "$HARBOR_PUSH_PASSWORD" > ~/.docker/config.json
+    - buildctl-daemonless.sh build --frontend dockerfile.v0 --local context=. --local dockerfile=. --output type=image,name=$IMAGE_REPOSITORY:$CI_COMMIT_SHA,push=true
+
+quality-gate:
+  stage: evaluate
+  dependencies: []
+  image:
+    name: $IMAGE_REPOSITORY:$CI_COMMIT_SHA
+    entrypoint: [""]
+  script:
+    - cd /app
+    - python -m app.evaluate --output "$CI_PROJECT_DIR/reports"
+  artifacts:
+    when: always
+    reports:
+      junit: reports/quality.xml
+    paths: [reports/]
+    expire_in: 30 days
+
+promote-gitops:
+  stage: promote
+  interruptible: false
+  image: python:3.12-slim
+  resource_group: production
+  script:
+    - python scripts/promote.py
+  artifacts:
+    reports:
+      dotenv: reports/promotion.env
+    paths: [reports/promotion.json]
+
+verify-deployment:
+  stage: verify
+  interruptible: false
+  environment:
+    name: sample
+    url: https://llmops.clush.cloud/docs
+    deployment_tier: development
+  image: python:3.12-slim
+  resource_group: production
+  script:
+    - python scripts/verify.py
+  artifacts:
+    when: always
+    paths: [reports/deployment.json]

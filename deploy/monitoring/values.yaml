@@ -1,0 +1,111 @@
+grafana:
+  enabled: true
+  adminUser: root
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      nginx.org/client-max-body-size: "0"
+      nginx.org/proxy-read-timeout: 600s
+      nginx.org/proxy-send-timeout: 600s
+      nginx.org/proxy-set-headers: "X-Forwarded-Proto: https, X-Forwarded-Port: 443"
+      nginx.org/ssl-redirect: "false"
+    hosts:
+      - grafana.clush.cloud
+    path: /
+  persistence:
+    enabled: true
+    type: sts
+    storageClassName: platform-local-retain
+    accessModes:
+      - ReadWriteOnce
+    size: 5Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 768Mi
+
+alertmanager:
+  enabled: false
+
+prometheus:
+  enabled: true
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      nginx.org/client-max-body-size: "0"
+      nginx.org/proxy-read-timeout: 600s
+      nginx.org/proxy-send-timeout: 600s
+      nginx.org/proxy-set-headers: "X-Forwarded-Proto: https, X-Forwarded-Port: 443"
+      nginx.org/ssl-redirect: "false"
+    hosts:
+      - prometheus.clush.cloud
+    paths:
+      - /
+    pathType: Prefix
+  prometheusSpec:
+    externalUrl: https://prometheus.clush.cloud
+    retention: 5d
+    retentionSize: 8GB
+    replicas: 1
+    shards: 1
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: "2"
+        memory: 2Gi
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: platform-local-retain
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 10Gi
+
+prometheusOperator:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 768Mi
+
+prometheus-node-exporter:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+kube-state-metrics:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+prometheusConfigReloader:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi

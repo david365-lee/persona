@@ -18,21 +18,22 @@ persistence:
 trivy:
   enabled: true
   resources:
-    requests: {cpu: 100m, memory: 256Mi}
-    limits: {cpu: '1', memory: 1Gi}
+    requests: {cpu: 100m, memory: 128Mi}
+    limits: {cpu: '1', memory: 512Mi}
 portal:
   resources:
     requests: {cpu: 50m, memory: 64Mi}
     limits: {cpu: '1', memory: 256Mi}
 core:
   resources:
-    requests: {cpu: 100m, memory: 256Mi}
-    limits: {cpu: '2', memory: 768Mi}
+    requests: {cpu: 100m, memory: 128Mi}
+    limits: {cpu: '2', memory: 512Mi}
 jobservice:
   resources:
     requests: {cpu: 50m, memory: 128Mi}
     limits: {cpu: '1', memory: 512Mi}
 registry:
+  relativeurls: true
   registry:
     resources:
       requests: {cpu: 100m, memory: 128Mi}
@@ -44,8 +45,8 @@ registry:
 database:
   internal:
     resources:
-      requests: {cpu: 100m, memory: 256Mi}
-      limits: {cpu: '1', memory: 768Mi}
+      requests: {cpu: 100m, memory: 128Mi}
+      limits: {cpu: '1', memory: 512Mi}
 redis:
   internal:
     resources:

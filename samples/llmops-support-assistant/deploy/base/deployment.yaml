@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: support-assistant
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: support-assistant
+  template:
+    metadata:
+      labels:
+        app: support-assistant
+    spec:
+      automountServiceAccountToken: false
+      imagePullSecrets:
+        - name: harbor-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: api
+          image: harbor.clush.cloud/llmops/support-assistant:bootstrap
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: LITELLM_BASE_URL
+              value: http://litellm.litellm.svc.cluster.local:4000/v1
+            - name: LLM_MODEL
+              value: gemini-3.5-flash-lite
+            - name: RELEASE_SHA
+              value: b453aa27e977369427442a98b9afbb385d7469ea
+          envFrom:
+            - secretRef:
+                name: support-assistant-auth
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          startupProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            failureThreshold: 30
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

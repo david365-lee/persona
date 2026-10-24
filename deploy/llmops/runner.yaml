@@ -1,0 +1,118 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: runner-manager
+  namespace: llmops-ci
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: runner-manager
+  namespace: llmops-ci
+rules:
+  - apiGroups: [""]
+    resources: [pods, pods/attach, pods/exec, pods/log, secrets, services, serviceaccounts, events]
+    verbs: [get, list, watch, create, patch, update, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: runner-manager
+  namespace: llmops-ci
+subjects:
+  - kind: ServiceAccount
+    name: runner-manager
+    namespace: llmops-ci
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: runner-manager
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: runner-config
+  namespace: llmops-ci
+data:
+  config.toml: |
+    concurrent = 1
+    check_interval = 3
+    [[runners]]
+      name = "llmops-kubernetes"
+      url = "https://gitlab.clush.cloud"
+      token = "__RUNNER_TOKEN__"
+      executor = "kubernetes"
+      environment = ["FF_USE_ADVANCED_POD_SPEC_CONFIGURATION=true"]
+      [runners.kubernetes]
+        namespace = "llmops-ci"
+        image = "python:3.12-slim"
+        privileged = false
+        automount_service_account_token = false
+        poll_timeout = 300
+        image_pull_secrets = ["harbor-pull"]
+        cpu_request = "100m"
+        memory_request = "256Mi"
+        memory_limit = "1Gi"
+        helper_cpu_request = "50m"
+        helper_memory_request = "64Mi"
+        helper_memory_limit = "256Mi"
+      [[runners.kubernetes.pod_spec]]
+        name = "rootless-buildkit-seccomp"
+        patch_type = "strategic"
+        patch = '''
+          securityContext:
+            seccompProfile:
+              type: Unconfined
+        '''
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitlab-runner
+  namespace: llmops-ci
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: llmops-runner
+  template:
+    metadata:
+      labels:
+        app: llmops-runner
+    spec:
+      serviceAccountName: runner-manager
+      containers:
+        - name: runner
+          image: gitlab/gitlab-runner:alpine-v19.5.1
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              umask 077
+              sed "s|__RUNNER_TOKEN__|${RUNNER_TOKEN}|" /template/config.toml > /runtime/config.toml
+              exec gitlab-runner run --config /runtime/config.toml
+          env:
+            - name: RUNNER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: gitlab-runner-auth
+                  key: runner-token
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          volumeMounts:
+            - name: template
+              mountPath: /template
+              readOnly: true
+            - name: runtime
+              mountPath: /runtime
+      volumes:
+        - name: template
+          configMap:
+            name: runner-config
+        - name: runtime
+          emptyDir:
+            medium: Memory

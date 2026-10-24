@@ -1,0 +1,65 @@
+global:
+  domain: argocd.clush.cloud
+
+configs:
+  cm:
+    url: https://argocd.clush.cloud
+    admin.enabled: "false"
+    accounts.root: login
+  rbac:
+    policy.default: role:readonly
+    policy.csv: |
+      g, root, role:admin
+  params:
+    server.insecure: "true"
+
+dex:
+  enabled: false
+
+notifications:
+  enabled: false
+
+redis:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+controller:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+
+repoServer:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+
+server:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hostname: argocd.clush.cloud
+    path: /
+    pathType: Prefix
+    annotations:
+      nginx.org/proxy-read-timeout: "3600s"
+      nginx.org/proxy-send-timeout: "3600s"

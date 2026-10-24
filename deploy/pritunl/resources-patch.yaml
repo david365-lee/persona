@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pritunl
+  namespace: pritunl
+spec:
+  template:
+    spec:
+      containers:
+        - name: mongodb
+          resources:
+            requests:
+              memory: 128Mi
+        - name: pritunl
+          resources:
+            requests:
+              memory: 128Mi
